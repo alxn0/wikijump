@@ -296,6 +296,139 @@ export def MaybeAutoComplete()
   complete(start, Candidates(base))
 enddef
 
+# ---------- Rename ----------
+
+# Rename the current file to <new_name>.md in the same directory and
+# rewrite every [[wikilink]] in the notebook that targets the old name.
+# Handles [[name]], [[name|alias]], [[name#section]], and
+# [[name#section|alias]] forms — only the target portion is replaced.
+#
+# All work is staged in memory first; nothing is written to disk until
+# every affected file has been read and every modified .md buffer in the
+# notebook is clean. This avoids a half-renamed notebook on partial
+# failure.
+export def Rename(new_name: string)
+  if !exists('b:wj_root') || empty(b:wj_root)
+    Error('not in a notebook')
+    return
+  endif
+  var stripped = trim(new_name)
+  if empty(stripped)
+    Error('rename requires a new name')
+    return
+  endif
+  if stripped =~# '[][|#/\\]'
+    Error('invalid characters in new name')
+    return
+  endif
+  var old_path = expand('%:p')
+  if empty(old_path) || !filereadable(old_path)
+    Error('current buffer has no file on disk')
+    return
+  endif
+  # Strip a trailing `.md` only — never any other extension — so a name
+  # like `intro.draft` is taken as-is and becomes `intro.draft.md`.
+  var new_basename = stripped =~? '\.md$' ? stripped[: -4] : stripped
+  if empty(new_basename)
+    Error('rename requires a new name')
+    return
+  endif
+  var old_basename = fnamemodify(old_path, ':t:r')
+  if new_basename ==# old_basename
+    Error('new name is the same as the current name')
+    return
+  endif
+  var dir = fnamemodify(old_path, ':h')
+  var new_path = dir .. '/' .. new_basename .. '.md'
+  if filereadable(new_path) || isdirectory(new_path)
+    Error('destination already exists: ' .. new_path)
+    return
+  endif
+
+  # Save the current buffer before touching anything. If the write fails
+  # (permissions, disk full), abort with no on-disk state changed.
+  if &modified
+    try
+      write
+    catch
+      Error('failed to save current buffer: ' .. v:exception)
+      return
+    endtry
+    if &modified
+      Error('failed to save current buffer')
+      return
+    endif
+  endif
+
+  # Refuse to proceed if any other notebook .md buffer has unsaved
+  # changes — we'd otherwise clobber them via writefile() + checktime.
+  for b in getbufinfo({bufmodified: 1})
+    if empty(b.name) || b.name !~? '\.md$'
+      continue
+    endif
+    var bpath = resolve(b.name)
+    if bpath ==# old_path
+      continue
+    endif
+    if stridx(bpath, b:wj_root) == 0
+      Error('cannot rename: ' .. bpath .. ' has unsaved changes')
+      return
+    endif
+  endfor
+
+  var changes = ComputeLinkUpdates(b:wj_root, old_basename, new_basename)
+
+  if rename(old_path, new_path) != 0
+    Error('failed to rename: ' .. old_path .. ' -> ' .. new_path)
+    return
+  endif
+
+  var view = winsaveview()
+  execute 'file' fnameescape(new_path)
+  var total = 0
+  for change in changes
+    var target = change.path ==# old_path ? new_path : change.path
+    var perm = getfperm(target)
+    writefile(split(change.content, "\n", 1), target)
+    if !empty(perm)
+      setfperm(target, perm)
+    endif
+    total += change.count
+  endfor
+
+  edit!
+  winrestview(view)
+  checktime
+  echo printf('wikijump: renamed to %s.md, %d link(s) updated',
+        \ new_basename, total)
+enddef
+
+# Scan the notebook and return a list of pending edits without writing.
+# Each entry is {path, content, count}. `path` is the original file path;
+# the caller decides where to write (e.g., redirecting the renamed file
+# to its new location).
+def ComputeLinkUpdates(root: string, old: string,
+      \ new: string): list<dict<any>>
+  # Use `[ \t]*` instead of `\s*` so the pattern can't span lines after
+  # the join() round-trip below.
+  var pattern = '\[\[[ \t]*\zs' .. escape(old, '\.*~^$[]/&') ..
+        \ '\ze[ \t]*\%([#|]\|\]\]\)'
+  var replacement = escape(new, '\&~')
+  var changes: list<dict<any>> = []
+  for path in glob(root .. '/**/*.md', true, true)
+    if IsExcludedPath(root, path)
+      continue
+    endif
+    var content = join(readfile(path), "\n")
+    var updated = substitute(content, pattern, replacement, 'g')
+    if updated !=# content
+      var count = len(split(content, pattern, 1)) - 1
+      changes += [{path: path, content: updated, count: count}]
+    endif
+  endfor
+  return changes
+enddef
+
 # ---------- Index ----------
 
 # Open the notebook's landing page in the current window. Filename comes

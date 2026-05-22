@@ -6,7 +6,7 @@ A record of choices made and the alternatives rejected, so the rationale survive
 
 **The plugin handles `[[wikilinks]]` only.** Vim already provides `gf` (go to file, with `suffixesadd+=.md` for markdown link targets) and `gx` (open URL in system browser). Reimplementing either would duplicate built-in behavior. The plugin's single job is teaching Vim about the one link syntax it doesn't natively understand.
 
-**The plugin touches one buffer at a time.** Operations that would read or write multiple files (rename with link rewriting across the notebook, backlink computation, full-text search, notebook validation, template instantiation) are out of scope. They belong to other tooling — shell scripts, external programs, or manual workflows — invoked by the user when needed. The plugin does not wrap or coordinate with such tooling.
+**The plugin touches one buffer at a time, with one exception: `:WikijumpRename`.** Rename was originally rejected as out-of-scope (along with backlink computation, full-text search, notebook validation, and template instantiation) on the principle that anything reading or writing multiple files belongs to external tooling. It was later re-introduced because the alternative — renaming in a shell and chasing stale `[[wikilinks]]` manually — defeats the point of basename-resolved links. Backlinks, search, validation, and templates remain out of scope; they each have mature external tools (`rg`, `fzf`, `:WikijumpRoot`-driven shell scripts) that handle them well. Rename did not.
 
 **No search or picker commands.** The plugin ships no `:WikijumpSearch`, no fzf wiring, no telescope integration. Picker choice is personal, and any external tool the user wires up to populate one is their config, not the plugin's.
 

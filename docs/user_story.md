@@ -39,6 +39,10 @@ The plugin splits on `|` (keeps the left side), then on `#` (keeps the left side
 
 **Anchor jumps land on the matching heading.** After opening the file, the plugin searches for the first `#`/`##`/`###`/etc. heading whose text matches the anchor. Matching is case-insensitive and treats hyphens in the anchor as spaces, so `[[notes#some-heading]]` finds `## Some Heading`. The matched line is centered in the window. If no heading matches (or the target file is empty, e.g. just created), the cursor stays at the top — silent, no error.
 
+## Rename a note
+
+**`:WikijumpRename <name>` renames the current file and rewrites every `[[wikilink]]` that targets it.** This is the one command that touches more than one file. It moves `<current>.md` to `<name>.md` in the same directory, then scans every `.md` in the notebook and replaces the target portion of any `[[<old>]]`, `[[<old>|alias]]`, `[[<old>#section]]`, or `[[<old>#section|alias]]` — keeping aliases and section anchors intact. Excluded directories (`_*`, `.*`) are skipped, same as link resolution. The `.md` extension is optional; the buffer reloads to reflect the new name. Errors if the destination already exists, the new name equals the current one, the name contains `[`, `]`, `|`, `#`, `/`, or `\`, or the buffer is outside a notebook.
+
 ## Move between links in a buffer
 
 **`:WikijumpNext` jumps to the next `[[wikilink]]` in the buffer.** Search wraps around the end so repeated invocations cycle through every wikilink in the file. Markdown links are skipped — they are not the plugin's domain; use `/](` to find them with Vim's regular search.
