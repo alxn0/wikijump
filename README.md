@@ -1,69 +1,86 @@
 # wikijump.vim
 
-A Vim9 plugin for following and creating `[[wikilinks]]` in markdown
-notebooks. Single-buffer, opinionated, and small.
+A simple Vim9 plugin to follow and create `[[wikilinks]]` in markdown
+file. Small and opinionated.
 
-## What it does
+It revolves on the concept of *notebook*, which is simply a folder
+within which filenames can be used as `[[wikilinks]]`.
 
-- Press `<CR>` on a `[[wikilink]]` to open it. Basename resolution across
-  the notebook, anchor jump on `[[foo#some-heading]]`, alias display on
-  `[[foo|Friendly Name]]`.
-- Missing target? Opens an empty buffer at `<root>/<basename>.md`. Save
-  to create.
+## Rationale
+
+I used `lervag/wiki.vim` for a while, but only for its navigation.
+Other functionality was handled by simple `bash` scripts using `rg` and
+`fzf`. I wanted something like `fcpg/vim-waikiki`, but for
+`[[wikilinks]]` instead of markdown links.
+
+## Context
+
+This package is built with Claude Code. I use the project to learn Vim9
+script and improve my daily workflow. PRs are closed for now.
+
+## Functionnality
+
+- Press `<CR>` on a [[wikilink]] open it in the same buffer (i.e.,
+  jump). Use basename resolution in the present notebook (no nested
+  structure, flat namespace.
+- If target is missing, opens an empty buffer as
+  `<notebook>/<wikilink>.md`.
 - `:WikijumpNext` / `:WikijumpPrev` cycle through wikilinks in the
-  buffer (markdown `[](…)` links are skipped).
-- `:WikijumpIndex` opens the notebook's landing page.
-- Inside `[[…`, `<C-x><C-u>` completes notebook basenames.
+  buffer (ignore markdown links `[](…)`).
+- `:WikijumpIndex` return to the notebook landing page.
+- Inside `[[…`, use `<C-x><C-u>` to complete filenames (or bind
+  `<Plug>(wikijump-complete)` if an LSP already owns `completefunc`).
 
-## What it does not do
+## Deffered to VIM internal functionality
 
-`gf` (markdown links), `gx` (URLs), `<C-o>`/`<C-i>` (jumplist), search,
-pickers, backlinks, cross-file rename, templates. Those are Vim or other
-tools. See [`docs/design.md`](docs/design.md) for the reasoning.
+- Use `gf` and `gx` for regular markdown and URLs links
+- Use `<C-o>`/`<C-i>` to navigate between previous and following file (jumplist)
+
+See [`docs/design.md`](docs/design.md) for the reasoning.
+
+## Implemented wikilinks syntax
+
+- Simple `[[wikilinks]]`
+- Alias `[[wikilings|alias]]`
+- Section `[[wikilinks#section]]`
 
 ## Install
 
-Requirements: Vim 9.1+. Neovim is not supported (`vim9script` is Vim-only).
+Requirements: Vim 9.0+. Neovim is not supported (`vim9script` is Vim-only).
 
-With vim-plug:
+Using Vim's built-in package support (no plugin manager needed):
 
-```vim
-Plug 'alxn0/wikijump'
+```sh
+git clone https://github.com/alxn0/wikijump \
+    ~/.vim/pack/plugins/start/wikijump
+vim -c 'helptags ALL' -c 'q'
 ```
 
-Or any other plugin manager that puts a directory on `runtimepath`. Run
-`:helptags ALL` after install.
+It can also be installed with a plugin manager:
 
-## Make a directory a notebook
+```vim
+Plug 'alxn0/wikijump'              " vim-plug
+call minpac#add('alxn0/wikijump')  " minpac
+```
+
+```sh
+cd ~/.vim/bundle && git clone https://github.com/alxn0/wikijump  # pathogen
+```
+
+## Notebook
+
+A notebooks is simply a folder with a `.wikijump` file in it.
+
+So initiating a notebook in Unix-like environment is simply:
 
 ```sh
 touch .wikijump
 ```
 
-That's it. The file's first non-blank line, if present, overrides the
-landing-page name:
+The file's first non-blank line, if present, overrides `g:wj_index_name`.
 
 ```
 README.md
-```
-
-## Recommended mappings
-
-The plugin ships only one default mapping: `<CR>` to follow the link
-under the cursor (markdown buffers in a notebook). Bind the rest yourself:
-
-```vim
-" Tab / Shift-Tab cycle wikilinks (Neovim or GUI; on terminal Vim, <Tab>
-" shadows jumplist forward).
-augroup wikijump_keys
-  autocmd!
-  autocmd FileType markdown nmap <buffer> <Tab>   <Cmd>WikijumpNext<CR>
-  autocmd FileType markdown nmap <buffer> <S-Tab> <Cmd>WikijumpPrev<CR>
-augroup END
-
-" Wiki completion on a dedicated insert-mode key (works regardless of
-" what owns &completefunc — useful when an LSP claims it).
-imap <C-x>w <Plug>(wikijump-complete)
 ```
 
 ## Configuration
