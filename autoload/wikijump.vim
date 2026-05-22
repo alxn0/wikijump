@@ -144,7 +144,11 @@ enddef
 
 def IsExcludedPath(root: string, path: string): bool
   var rel = strpart(path, len(root) + 1)
-  for segment in split(fnamemodify(rel, ':h'), '/')
+  var dir = fnamemodify(rel, ':h')
+  if dir ==# '.'
+    return false
+  endif
+  for segment in split(dir, '/')
     if segment =~# '^[._]'
       return true
     endif
@@ -207,6 +211,89 @@ export def FollowExpr(): string
     return "\<CR>"
   endif
   return ":WikijumpFollow\<CR>"
+enddef
+
+# ---------- Completion ----------
+
+# Vim completion-function protocol. Lives on `completefunc`; triggered via
+# <C-x><C-u> or the <Plug>(wikijump-complete) map.
+export def Complete(findstart: number, base: string): any
+  if findstart == 1
+    return FindCompletionStart()
+  endif
+  return Candidates(base)
+enddef
+
+# Find the column of the first character after `[[` on the current line,
+# scanning left from the cursor. Returns -2 (cancel completion) when the
+# cursor is not inside an open [[ … ]] span.
+def FindCompletionStart(): number
+  var line = getline('.')
+  # Scan left from the byte just before the cursor. Cursor is 1-based.
+  var idx = col('.') - 2
+  while idx >= 1
+    if line[idx - 1] ==# '[' && line[idx] ==# '['
+      # idx is 0-based position of the second '['; the next char is 0-based
+      # idx + 1, which is 1-based column idx + 2.
+      return idx + 2
+    endif
+    if line[idx] ==# ']'
+      return -2
+    endif
+    idx -= 1
+  endwhile
+  return -2
+enddef
+
+def Candidates(base: string): list<dict<string>>
+  if !exists('b:wj_root') || empty(b:wj_root)
+    return []
+  endif
+  var pattern = b:wj_root .. '/**/*.md'
+  var results: list<dict<string>> = []
+  for path in glob(pattern, true, true)
+    if IsExcludedPath(b:wj_root, path)
+      continue
+    endif
+    var name = fnamemodify(path, ':t:r')
+    if empty(base) || stridx(tolower(name), tolower(base)) >= 0
+      results += [{word: name, kind: 'f', menu: PathMenu(b:wj_root, path)}]
+    endif
+  endfor
+  return results
+enddef
+
+def PathMenu(root: string, path: string): string
+  var rel = strpart(path, len(root) + 1)
+  var dir = fnamemodify(rel, ':h')
+  return dir ==# '.' ? '' : dir .. '/'
+enddef
+
+# Manual completion trigger used by <Plug>(wikijump-complete). Works
+# regardless of what owns &completefunc.
+export def TriggerComplete()
+  var start = FindCompletionStart()
+  if start < 0
+    return
+  endif
+  var base = strpart(getline('.'), start - 1, col('.') - start)
+  complete(start, Candidates(base))
+enddef
+
+# Used by the opt-in TextChangedI autocmd when g:wj_autocomplete = 1.
+export def MaybeAutoComplete()
+  if mode() !=# 'i'
+    return
+  endif
+  var start = FindCompletionStart()
+  if start < 0
+    return
+  endif
+  var base = strpart(getline('.'), start - 1, col('.') - start)
+  if empty(base)
+    return
+  endif
+  complete(start, Candidates(base))
 enddef
 
 # ---------- Index ----------
