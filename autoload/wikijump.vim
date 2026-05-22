@@ -209,6 +209,20 @@ export def FollowExpr(): string
   return ":WikijumpFollow\<CR>"
 enddef
 
+# ---------- Index ----------
+
+# Open the notebook's landing page in the current window. Filename comes
+# from b:wj_index_name (notebook field -> g:wj_index_name -> 'index.md').
+# Errors when the buffer is not inside a notebook.
+export def Index()
+  if !exists('b:wj_root') || empty(b:wj_root)
+    Error('not in a notebook')
+    return
+  endif
+  var path = b:wj_root .. '/' .. b:wj_index_name
+  execute 'edit' fnameescape(path)
+enddef
+
 # ---------- Diagnostics ----------
 
 # Echo the resolved notebook root for the current buffer. Errors if the
