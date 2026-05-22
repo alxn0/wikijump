@@ -23,9 +23,10 @@ endif
 inoremap <buffer><silent> <Plug>(wikijump-complete)
       \ <Cmd>call wikijump#TriggerComplete()<CR>
 
-if get(g:, 'wj_autocomplete', 0)
-  augroup wikijump_autocomplete
-    autocmd! * <buffer>
-    autocmd TextChangedI <buffer> call wikijump#MaybeAutoComplete()
-  augroup END
-endif
+# Install the autocmd unconditionally; MaybeAutoComplete checks
+# g:wj_autocomplete on each event, so toggling the global at runtime
+# takes effect on the next keystroke without re-sourcing the ftplugin.
+augroup wikijump_autocomplete
+  autocmd! * <buffer>
+  autocmd TextChangedI <buffer> call wikijump#MaybeAutoComplete()
+augroup END

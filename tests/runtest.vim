@@ -5,8 +5,10 @@ vim9script
 #   vim -es -Nu NONE -S tests/runtest.vim tests/test_resolve.vim [...]
 #
 # Discovers Test_* functions in each sourced file, runs each one. Results
-# are written to tmp/test.log because -es silent mode suppresses :echo.
-# Exits non-zero (cquit) if any assertion failed.
+# are written to <project>/tmp/test.log because -es silent mode
+# suppresses :echo. Exits non-zero (cquit) if any assertion failed.
+
+const PROJECT_ROOT = fnamemodify(resolve(expand('<sfile>:p')), ':h:h')
 
 g:wj_test_failures = 0
 g:wj_test_passes = 0
@@ -62,8 +64,8 @@ endfor
 Log(printf('Total: %d passed, %d failed',
       \ g:wj_test_passes, g:wj_test_failures))
 
-mkdir('tmp', 'p')
-writefile(test_log, 'tmp/test.log')
+mkdir(PROJECT_ROOT .. '/tmp', 'p')
+writefile(test_log, PROJECT_ROOT .. '/tmp/test.log')
 
 if g:wj_test_failures > 0
   cquit

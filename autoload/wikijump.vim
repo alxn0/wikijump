@@ -1,6 +1,11 @@
 vim9script
 # Implementation for wikijump.vim. Loaded on first call via autoload.
 
+# True when the current buffer sits inside a resolved notebook.
+def InNotebook(): bool
+  return exists('b:wj_root') && !empty(b:wj_root)
+enddef
+
 # ---------- Notebook resolution ----------
 
 # Walk up from `start` looking for the marker file. Stop at any directory in
@@ -162,7 +167,7 @@ enddef
 # Entry point for :WikijumpFollow and the <CR> map. Returns true when a
 # link was followed, false when there was nothing to follow.
 export def Follow(): bool
-  if !exists('b:wj_root') || empty(b:wj_root)
+  if !InNotebook()
     Error('not in a notebook')
     return false
   endif
@@ -197,9 +202,9 @@ export def JumpToAnchor(anchor: string)
     return
   endif
   var in_fence = false
-  var lnum = 0
-  for line in getline(1, '$')
-    lnum += 1
+  var last = line('$')
+  for lnum in range(1, last)
+    var line = getline(lnum)
     if line =~# '^\s*```'
       in_fence = !in_fence
       continue
@@ -224,10 +229,7 @@ enddef
 # invocation that consumes the key, or a literal <CR> so the default
 # behavior is preserved off-link.
 export def FollowExpr(): string
-  if !exists('b:wj_root') || empty(b:wj_root)
-    return "\<CR>"
-  endif
-  if empty(LinkUnderCursor())
+  if !InNotebook() || empty(LinkUnderCursor())
     return "\<CR>"
   endif
   return ":WikijumpFollow\<CR>"
@@ -266,7 +268,7 @@ def FindCompletionStart(): number
 enddef
 
 def Candidates(base: string): list<dict<string>>
-  if !exists('b:wj_root') || empty(b:wj_root)
+  if !InNotebook()
     return []
   endif
   var pattern = b:wj_root .. '/**/*.md'
@@ -305,8 +307,12 @@ export def TriggerComplete()
   complete(start, Candidates(base))
 enddef
 
-# Used by the opt-in TextChangedI autocmd when g:wj_autocomplete = 1.
+# TextChangedI handler. Checks g:wj_autocomplete on every event so the
+# global can be flipped at runtime.
 export def MaybeAutoComplete()
+  if !get(g:, 'wj_autocomplete', 0)
+    return
+  endif
   if mode() !=# 'i'
     return
   endif
@@ -333,7 +339,7 @@ enddef
 # notebook is clean. This avoids a half-renamed notebook on partial
 # failure.
 export def Rename(new_name: string)
-  if !exists('b:wj_root') || empty(b:wj_root)
+  if !InNotebook()
     Error('not in a notebook')
     return
   endif
@@ -464,7 +470,7 @@ enddef
 # from b:wj_index_name (notebook field -> g:wj_index_name -> 'index.md').
 # Errors when the buffer is not inside a notebook.
 export def Index()
-  if !exists('b:wj_root') || empty(b:wj_root)
+  if !InNotebook()
     Error('not in a notebook')
     return
   endif
@@ -477,7 +483,7 @@ enddef
 # Echo the resolved notebook root for the current buffer. Errors if the
 # buffer is not inside any notebook.
 export def Root()
-  if !exists('b:wj_root') || empty(b:wj_root)
+  if !InNotebook()
     Error('not in a notebook')
     return
   endif
