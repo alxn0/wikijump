@@ -112,6 +112,18 @@ export def LinkUnderCursor(): dict<any>
   return {}
 enddef
 
+# ---------- Navigation ----------
+
+# Jump to the next [[wikilink]] in the buffer, wrapping at end.
+export def Next()
+  search(LINK_PATTERN, 'w')
+enddef
+
+# Jump to the previous [[wikilink]] in the buffer, wrapping at start.
+export def Prev()
+  search(LINK_PATTERN, 'wb')
+enddef
+
 # ---------- Follow ----------
 
 # Resolve a basename to a path under root. Returns empty string when no
