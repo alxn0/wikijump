@@ -43,3 +43,28 @@ def g:Test_Follow_outside_notebook_errors()
   assert_match('not in a notebook', out)
   bwipeout!
 enddef
+
+def g:Test_Follow_jumps_to_anchor()
+  execute 'edit' fnameescape(FIX .. '/notebook/notes/bar.md')
+  cursor(3, stridx(getline(3), 'some-heading') + 1)
+  WikijumpFollow
+  assert_equal(FIX .. '/notebook/notes/foo.md', expand('%:p'))
+  assert_match('^##\s\+Some Heading', getline('.'))
+  bwipeout!
+enddef
+
+def g:Test_JumpToAnchor_silent_on_miss()
+  execute 'edit' fnameescape(FIX .. '/notebook/notes/foo.md')
+  cursor(1, 1)
+  wikijump#JumpToAnchor('nonexistent')
+  assert_equal(1, line('.'))
+  bwipeout!
+enddef
+
+def g:Test_JumpToAnchor_normalizes_hyphens_and_case()
+  execute 'edit' fnameescape(FIX .. '/notebook/notes/foo.md')
+  cursor(1, 1)
+  wikijump#JumpToAnchor('SOME-HEADING')
+  assert_match('^##\s\+Some Heading', getline('.'))
+  bwipeout!
+enddef

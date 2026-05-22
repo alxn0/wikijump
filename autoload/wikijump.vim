@@ -156,7 +156,32 @@ export def Follow(): bool
     path = b:wj_root .. '/' .. link.target .. '.md'
   endif
   execute 'edit' fnameescape(path)
+  if !empty(link.anchor)
+    JumpToAnchor(link.anchor)
+  endif
   return true
+enddef
+
+# Find the first heading whose text matches `anchor` (case-insensitive,
+# hyphens treated as spaces). Centers the match with `zz`. Silent on miss.
+export def JumpToAnchor(anchor: string)
+  var needle = NormalizeAnchor(anchor)
+  if empty(needle)
+    return
+  endif
+  var lines = getline(1, '$')
+  for i in range(len(lines))
+    var heading = matchstr(lines[i], '^\s*#\+\s\+\zs.\{-}\ze\s*$')
+    if !empty(heading) && NormalizeAnchor(heading) ==# needle
+      cursor(i + 1, 1)
+      normal! zz
+      return
+    endif
+  endfor
+enddef
+
+def NormalizeAnchor(s: string): string
+  return tolower(substitute(trim(s), '-', ' ', 'g'))
 enddef
 
 # Expression mapping used by the <CR> map: returns either a follow
