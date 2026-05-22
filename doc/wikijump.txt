@@ -1,0 +1,163 @@
+*wikijump.txt*  Follow and create [[wikilinks]] in markdown notebooks.
+
+==============================================================================
+CONTENTS                                                  *wikijump-contents*
+
+  1. Introduction ........................... |wikijump-intro|
+  2. Notebooks .............................. |wikijump-notebook|
+  3. Commands ............................... |wikijump-commands|
+  4. Mappings ............................... |wikijump-mappings|
+  5. Completion ............................. |wikijump-completion|
+  6. Configuration .......................... |wikijump-config|
+  7. Buffer-local variables ................. |wikijump-buffer-vars|
+
+==============================================================================
+1. Introduction                                              *wikijump-intro*
+
+wikijump.vim teaches Vim to follow `[[wikilinks]]` in markdown notebooks.
+It is intentionally small: one buffer at a time, no cross-file rename, no
+backlinks, no picker. For everything else, use Vim's built-ins: |gf| for
+markdown links, |gx| for URLs, |CTRL-O| / |CTRL-I| for jumplist.
+
+==============================================================================
+2. Notebooks                                              *wikijump-notebook*
+
+A notebook is any directory containing a `.wikijump` marker file. The file
+can be empty (defaults apply), or its first non-blank line can name the
+landing page:
+>
+    README.md
+<
+Resolution walks up from the current buffer until it finds the marker, hits
+a stop marker (default: `.git`), reaches `$HOME`, or reaches the filesystem
+root. The first marker found wins; nested notebooks are technically
+supported but never accidental.
+
+Wikilinks resolve by basename across the notebook tree. `[[foo]]` opens any
+`foo.md` reachable from the notebook root. Folder structure is
+organizational only.
+
+Files under directories whose names begin with `_` or `.` (for example
+`_templates/` or `.archive/`) are excluded from completion and from
+|:WikijumpNext| / |:WikijumpPrev| scans.
+
+==============================================================================
+3. Commands                                              *wikijump-commands*
+
+                                                              *:WikijumpFollow*
+:WikijumpFollow
+        Follow the `[[wikilink]]` under the cursor. Splits on `|` (display
+        alias) then `#` (heading anchor) and resolves the target by
+        basename. Missing targets open an empty buffer at
+        `<root>/<basename>.md` — saving creates the file. Anchor matching
+        is case-insensitive with hyphens treated as spaces.
+
+                                                                *:WikijumpNext*
+:WikijumpNext
+        Jump to the next `[[wikilink]]` in the buffer. Search wraps.
+
+                                                                *:WikijumpPrev*
+:WikijumpPrev
+        Jump to the previous `[[wikilink]]` in the buffer. Search wraps.
+
+                                                               *:WikijumpIndex*
+:WikijumpIndex
+        Open the notebook's landing page. Filename precedence:
+        first non-blank line of `.wikijump` → |g:wj_index_name| →
+        `index.md`. Errors when the buffer is outside any notebook. If the
+        landing page does not exist, the buffer opens empty — saving
+        creates the file.
+
+                                                                *:WikijumpRoot*
+:WikijumpRoot
+        Echo the resolved notebook root for the current buffer. Errors
+        when the buffer is outside any notebook. Pure diagnostic.
+
+                                                                *:WikijumpWrap*
+:WikijumpWrap
+        Wrap the last visual selection in `[[…]]`. Used after selecting
+        text in visual mode: `vw:WikijumpWrap<CR>`.
+
+==============================================================================
+4. Mappings                                              *wikijump-mappings*
+
+                                                                  *wikijump-CR*
+<CR>          (normal mode, markdown buffers inside a notebook)
+        Follow the wikilink under the cursor; falls through to default
+        `<CR>` when off a wikilink or outside a notebook.
+
+                                                  *<Plug>(wikijump-complete)*
+<Plug>(wikijump-complete)        (insert mode, markdown in a notebook)
+        Trigger wikilink completion directly. Use this when something else
+        (an LSP, for example) owns |'completefunc'|. Bind it yourself:
+>
+            imap <C-x>w <Plug>(wikijump-complete)
+<
+The plugin claims no other keys. Bind |:WikijumpNext|, |:WikijumpPrev|,
+and |:WikijumpWrap| from your config — typical choices:
+>
+        nmap <buffer> <Tab>   <Cmd>WikijumpNext<CR>
+        nmap <buffer> <S-Tab> <Cmd>WikijumpPrev<CR>
+        xmap <buffer> <leader>l :WikijumpWrap<CR>
+<
+==============================================================================
+5. Completion                                          *wikijump-completion*
+
+Inside `[[…`, |i_CTRL-X_CTRL-U| triggers completion of notebook basenames
+(`.md` stripped). The plugin installs `wikijump#Complete` as
+|'completefunc'| only when the slot is empty, so any LSP or other plugin
+that owns |'completefunc'| keeps working.
+
+`<Plug>(wikijump-complete)` always invokes wikilink completion directly,
+regardless of what owns |'completefunc'|. Bind it if you want completion
+on a custom key.
+
+Auto-trigger is opt-in: set |g:wj_autocomplete| to 1 to have the popup
+appear as you type inside `[[…`.
+
+|'omnifunc'| (|i_CTRL-X_CTRL-O|) is intentionally left alone. That slot is
+the conventional home for language-aware completion (markdown LSPs,
+pandoc citations). wikijump is a wiki overlay, not markdown language
+tooling.
+
+==============================================================================
+6. Configuration                                          *wikijump-config*
+
+All globals are read at load time via |get()|, so setting them in vimrc
+takes effect.
+
+                                                          *g:wj_marker_name*
+g:wj_marker_name        default: '.wikijump'
+        Filename of the notebook marker.
+
+                                                           *g:wj_index_name*
+g:wj_index_name         default: 'index.md'
+        Landing-page filename. Overridden per-notebook by the first
+        non-blank line of the marker file.
+
+                                                         *g:wj_stop_markers*
+g:wj_stop_markers       default: ['.git']
+        Directory names (or files) that halt the walk-up resolution, in
+        addition to the implicit `$HOME` and filesystem root.
+
+                                                          *g:wj_autocomplete*
+g:wj_autocomplete       default: 0
+        When 1, completion fires automatically inside `[[…` via
+        |TextChangedI|. Off by default.
+
+==============================================================================
+7. Buffer-local variables                          *wikijump-buffer-vars*
+
+Both are set on |BufEnter| (and lazily by the markdown ftplugin) for every
+buffer inside a notebook; unset elsewhere.
+
+                                                                    *b:wj_root*
+b:wj_root
+        Absolute path to the notebook root (the directory containing
+        the marker). Useful for status-line integration.
+
+                                                              *b:wj_index_name*
+b:wj_index_name
+        Resolved landing-page filename for this notebook.
+
+ vim:tw=78:ts=8:ft=help:norl:
