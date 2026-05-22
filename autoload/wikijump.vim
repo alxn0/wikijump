@@ -63,6 +63,24 @@ export def ResolveIndexName(root: string): string
   return get(g:, 'wj_index_name', 'index.md')
 enddef
 
+# ---------- Diagnostics ----------
+
+# Echo the resolved notebook root for the current buffer. Errors if the
+# buffer is not inside any notebook.
+export def Root()
+  if !exists('b:wj_root') || empty(b:wj_root)
+    Error('not in a notebook')
+    return
+  endif
+  echo b:wj_root
+enddef
+
+def Error(msg: string)
+  echohl ErrorMsg
+  echomsg 'wikijump: ' .. msg
+  echohl None
+enddef
+
 # Called from the BufEnter autocmd. Populates buffer-local state when the
 # buffer sits inside a notebook; clears it otherwise.
 export def OnBufEnter()

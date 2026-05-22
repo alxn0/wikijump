@@ -46,3 +46,18 @@ def g:Test_OnBufEnter_clears_state_outside_notebook()
   assert_false(exists('b:wj_root'))
   bwipeout!
 enddef
+
+def g:Test_WikijumpRoot_inside_notebook()
+  execute 'edit' fnameescape(FIX .. '/notebook/notes/foo.md')
+  var out = execute('WikijumpRoot')
+  assert_match(escape(FIX .. '/notebook', '/.'), out)
+  bwipeout!
+enddef
+
+def g:Test_WikijumpRoot_outside_errors()
+  execute 'edit' fnameescape(FIX .. '/outside/random.md')
+  var out = execute('WikijumpRoot')
+  assert_match('not in a notebook', out)
+  bwipeout!
+enddef
+
