@@ -7,8 +7,8 @@ vim9script
 # g:wj_stop_markers, at $HOME, or at the filesystem root. Returns the
 # notebook root path (containing the marker) or empty string.
 export def FindRoot(start: string): string
-  var marker = get(g:, 'wj_marker_name', '.wikijump')
-  var stops: list<string> = get(g:, 'wj_stop_markers', ['.git'])
+  var marker = g:wj_marker_name
+  var stops = g:wj_stop_markers
   var home = resolve(expand('$HOME'))
 
   var dir = resolve(fnamemodify(start, ':p'))
@@ -40,8 +40,7 @@ enddef
 # Read the first non-blank line of <root>/<marker>, trimmed.
 # Returns empty string if the file is empty or whitespace-only.
 export def ReadIndexName(root: string): string
-  var marker = get(g:, 'wj_marker_name', '.wikijump')
-  var path = root .. '/' .. marker
+  var path = root .. '/' .. g:wj_marker_name
   if !filereadable(path)
     return ''
   endif
@@ -57,10 +56,7 @@ enddef
 # Precedence: notebook field -> g:wj_index_name -> 'index.md'.
 export def ResolveIndexName(root: string): string
   var from_marker = ReadIndexName(root)
-  if !empty(from_marker)
-    return from_marker
-  endif
-  return get(g:, 'wj_index_name', 'index.md')
+  return !empty(from_marker) ? from_marker : g:wj_index_name
 enddef
 
 # ---------- Wikilink parsing ----------
@@ -90,13 +86,14 @@ export def LinkUnderCursor(): dict<any>
       var pipe = stridx(inner, '|')
       if pipe >= 0
         display = inner[pipe + 1 :]
-        inner = inner[: pipe - 1]
+        # Guard pipe==0 so we don't fall into Vim's [:-1] = full-string slice.
+        inner = pipe == 0 ? '' : inner[: pipe - 1]
       endif
       var target = inner
       var anchor = ''
       var hash = stridx(inner, '#')
       if hash >= 0
-        target = inner[: hash - 1]
+        target = hash == 0 ? '' : inner[: hash - 1]
         anchor = inner[hash + 1 :]
       endif
       return {
@@ -133,13 +130,19 @@ export def ResolveTarget(root: string, basename: string): string
   if empty(basename)
     return ''
   endif
-  var pattern = root .. '/**/' .. basename .. '.md'
+  var pattern = root .. '/**/' .. EscapeGlobMeta(basename) .. '.md'
   for path in glob(pattern, true, true)
     if !IsExcludedPath(root, path)
       return path
     endif
   endfor
   return ''
+enddef
+
+# Wrap glob metacharacters in single-character classes so a wikilink
+# target like `foo*` doesn't accidentally pattern-match other notes.
+def EscapeGlobMeta(s: string): string
+  return substitute(s, '[][*?]', '[&]', 'g')
 enddef
 
 def IsExcludedPath(root: string, path: string): bool
@@ -167,6 +170,14 @@ export def Follow(): bool
   if empty(link)
     return false
   endif
+  # Anchor-only links (`[[#section]]`) jump within the current buffer
+  # rather than opening or creating a file. Matches Obsidian behavior.
+  if empty(link.target)
+    if !empty(link.anchor)
+      JumpToAnchor(link.anchor)
+    endif
+    return true
+  endif
   var path = ResolveTarget(b:wj_root, link.target)
   if empty(path)
     path = b:wj_root .. '/' .. link.target .. '.md'
@@ -185,11 +196,20 @@ export def JumpToAnchor(anchor: string)
   if empty(needle)
     return
   endif
-  var lines = getline(1, '$')
-  for i in range(len(lines))
-    var heading = matchstr(lines[i], '^\s*#\+\s\+\zs.\{-}\ze\s*$')
+  var in_fence = false
+  var lnum = 0
+  for line in getline(1, '$')
+    lnum += 1
+    if line =~# '^\s*```'
+      in_fence = !in_fence
+      continue
+    endif
+    if in_fence
+      continue
+    endif
+    var heading = matchstr(line, '^\s*#\+\s\+\zs.\{-}\ze\s*$')
     if !empty(heading) && NormalizeAnchor(heading) ==# needle
-      cursor(i + 1, 1)
+      cursor(lnum, 1)
       normal! zz
       return
     endif
@@ -251,13 +271,18 @@ def Candidates(base: string): list<dict<string>>
   endif
   var pattern = b:wj_root .. '/**/*.md'
   var results: list<dict<string>> = []
+  var seen: dict<bool> = {}
   for path in glob(pattern, true, true)
     if IsExcludedPath(b:wj_root, path)
       continue
     endif
     var name = fnamemodify(path, ':t:r')
+    if has_key(seen, name)
+      continue
+    endif
     if empty(base) || stridx(tolower(name), tolower(base)) >= 0
       results += [{word: name, kind: 'f', menu: PathMenu(b:wj_root, path)}]
+      seen[name] = true
     endif
   endfor
   return results
@@ -362,6 +387,10 @@ export def Rename(new_name: string)
 
   # Refuse to proceed if any other notebook .md buffer has unsaved
   # changes — we'd otherwise clobber them via writefile() + checktime.
+  # Use `root .. '/'` as the prefix so a sibling notebook whose name
+  # has the root as a substring (e.g. /notes vs /notes-archive) is not
+  # falsely matched.
+  var root_prefix = b:wj_root .. '/'
   for b in getbufinfo({bufmodified: 1})
     if empty(b.name) || b.name !~? '\.md$'
       continue
@@ -370,7 +399,7 @@ export def Rename(new_name: string)
     if bpath ==# old_path
       continue
     endif
-    if stridx(bpath, b:wj_root) == 0
+    if stridx(bpath, root_prefix) == 0
       Error('cannot rename: ' .. bpath .. ' has unsaved changes')
       return
     endif

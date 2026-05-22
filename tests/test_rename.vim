@@ -179,6 +179,29 @@ def g:Test_Rename_preserves_file_permissions()
   Cleanup(nb)
 enddef
 
+def g:Test_Rename_ignores_dirty_buffer_in_sibling_notebook()
+  # Two notebooks where one's path is a string prefix of the other's.
+  var parent = tempname()
+  mkdir(parent .. '/notes', 'p')
+  mkdir(parent .. '/notes-archive', 'p')
+  writefile([], parent .. '/notes/.wikijump')
+  writefile([], parent .. '/notes-archive/.wikijump')
+  writefile(['# foo'], parent .. '/notes/foo.md')
+  writefile(['# other'], parent .. '/notes-archive/other.md')
+  # Open and dirty a buffer in the sibling notebook.
+  execute 'edit' fnameescape(parent .. '/notes-archive/other.md')
+  call append(0, 'dirty')
+  var sib_buf = bufnr('%')
+  # Rename in the primary notebook — should NOT be blocked.
+  execute 'edit' fnameescape(parent .. '/notes/foo.md')
+  WikijumpRename qux
+  assert_true(filereadable(parent .. '/notes/qux.md'))
+  assert_false(filereadable(parent .. '/notes/foo.md'))
+  bwipeout!
+  execute 'bwipeout!' sib_buf
+  delete(parent, 'rf')
+enddef
+
 def g:Test_Rename_rejects_existing_destination()
   var nb = MakeNotebook()
   execute 'edit' fnameescape(nb .. '/notes/foo.md')

@@ -83,3 +83,23 @@ def g:Test_Plug_mapping_exists_in_notebook_buffer()
         \ maparg('<Plug>(wikijump-complete)', 'i'))
   bwipeout!
 enddef
+
+def g:Test_Complete_dedupes_basename_collisions()
+  var nb = tempname()
+  mkdir(nb .. '/a', 'p')
+  mkdir(nb .. '/b', 'p')
+  writefile([], nb .. '/.wikijump')
+  writefile([], nb .. '/a/foo.md')
+  writefile([], nb .. '/b/foo.md')
+  execute 'edit' fnameescape(nb .. '/a/foo.md')
+  var candidates = wikijump#Complete(0, '')
+  var foo_count = 0
+  for c in candidates
+    if c.word ==# 'foo'
+      foo_count += 1
+    endif
+  endfor
+  assert_equal(1, foo_count)
+  bwipeout!
+  delete(nb, 'rf')
+enddef

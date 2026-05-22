@@ -68,3 +68,43 @@ def g:Test_JumpToAnchor_normalizes_hyphens_and_case()
   assert_match('^##\s\+Some Heading', getline('.'))
   bwipeout!
 enddef
+
+def g:Test_JumpToAnchor_skips_headings_inside_code_fences()
+  enew!
+  setline(1, [
+    '# Foo',
+    '',
+    '```python',
+    '# Some Heading',
+    '```',
+    '',
+    '## Some Heading',
+  ])
+  cursor(1, 1)
+  wikijump#JumpToAnchor('some-heading')
+  assert_equal(7, line('.'))
+  bwipeout!
+enddef
+
+def g:Test_Follow_anchor_only_link_stays_in_current_file()
+  execute 'edit' fnameescape(FIX .. '/notebook/notes/foo.md')
+  setline(1, ['[[#some-heading]]', '', '## Some Heading'])
+  cursor(1, 5)
+  WikijumpFollow
+  assert_equal(FIX .. '/notebook/notes/foo.md', expand('%:p'))
+  assert_match('^##\s\+Some Heading', getline('.'))
+  bwipeout!
+enddef
+
+def g:Test_ResolveTarget_treats_glob_metas_as_literal()
+  var nb = tempname()
+  mkdir(nb, 'p')
+  writefile([], nb .. '/.wikijump')
+  writefile([], nb .. '/foo.md')
+  writefile([], nb .. '/foobar.md')
+  # `foo*` must not match `foo.md` or `foobar.md` via glob expansion.
+  assert_equal('', wikijump#ResolveTarget(nb, 'foo*'))
+  # Sanity: exact literal `foo` still resolves.
+  assert_equal(nb .. '/foo.md', wikijump#ResolveTarget(nb, 'foo'))
+  delete(nb, 'rf')
+enddef

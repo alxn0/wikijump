@@ -57,3 +57,19 @@ def g:Test_Parse_picks_link_containing_cursor()
   assert_equal('two', link.target)
   bwipeout!
 enddef
+
+def g:Test_Parse_anchor_only_link()
+  PlaceCursor('see [[#some-heading]] above', 'some')
+  var link = wikijump#LinkUnderCursor()
+  assert_equal('', link.target)
+  assert_equal('some-heading', link.anchor)
+  bwipeout!
+enddef
+
+def g:Test_Parse_alias_only_link()
+  PlaceCursor('see [[|just an alias]] above', 'alias')
+  var link = wikijump#LinkUnderCursor()
+  assert_equal('', link.target)
+  assert_equal('just an alias', link.display)
+  bwipeout!
+enddef
