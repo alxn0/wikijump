@@ -108,3 +108,32 @@ def g:Test_ResolveTarget_treats_glob_metas_as_literal()
   assert_equal(nb .. '/foo.md', wikijump#ResolveTarget(nb, 'foo'))
   delete(nb, 'rf')
 enddef
+
+def g:Test_Follow_rejects_slash_in_target()
+  execute 'edit' fnameescape(FIX .. '/notebook/notes/bar.md')
+  setline(1, 'see [[notes/foo]] above')
+  cursor(1, stridx(getline(1), 'notes/') + 1)
+  var out = execute('WikijumpFollow')
+  assert_match('cannot contain /', out)
+  # Still in bar.md — no nested file was opened or created.
+  assert_equal(FIX .. '/notebook/notes/bar.md', expand('%:p'))
+  set nomodified
+  bwipeout!
+enddef
+
+def g:Test_JumpToAnchor_skips_tilde_fences()
+  enew!
+  setline(1, [
+    '# Foo',
+    '',
+    '~~~python',
+    '# Some Heading',
+    '~~~',
+    '',
+    '## Some Heading',
+  ])
+  cursor(1, 1)
+  wikijump#JumpToAnchor('some-heading')
+  assert_equal(7, line('.'))
+  bwipeout!
+enddef

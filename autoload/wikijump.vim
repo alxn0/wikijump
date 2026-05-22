@@ -183,6 +183,15 @@ export def Follow(): bool
     endif
     return true
   endif
+  # Enforce the flat-namespace contract: wikilinks address files by
+  # basename, not by path. A `/` in the target almost always means a
+  # stray path was pasted into a wikilink. (`\`, `[`, `]` can't appear
+  # in a parsed target — LINK_PATTERN's character class already
+  # excludes them.)
+  if stridx(link.target, '/') >= 0
+    Error('wikilink target cannot contain /: ' .. link.target)
+    return false
+  endif
   var path = ResolveTarget(b:wj_root, link.target)
   if empty(path)
     path = b:wj_root .. '/' .. link.target .. '.md'
@@ -205,7 +214,7 @@ export def JumpToAnchor(anchor: string)
   var last = line('$')
   for lnum in range(1, last)
     var line = getline(lnum)
-    if line =~# '^\s*```'
+    if line =~# '^\s*\%(```\|\~\~\~\)'
       in_fence = !in_fence
       continue
     endif
@@ -371,7 +380,13 @@ export def Rename(new_name: string)
   endif
   var dir = fnamemodify(old_path, ':h')
   var new_path = dir .. '/' .. new_basename .. '.md'
-  if filereadable(new_path) || isdirectory(new_path)
+  # On case-insensitive filesystems (default macOS, default Windows)
+  # `filereadable(new_path)` will return true for a case-only rename
+  # like foo.md -> Foo.md. Detect that case so the collision check
+  # doesn't reject what is actually the file being renamed.
+  var is_case_only_rename = tolower(old_path) ==# tolower(new_path)
+        \ && old_path !=# new_path
+  if !is_case_only_rename && (filereadable(new_path) || isdirectory(new_path))
     Error('destination already exists: ' .. new_path)
     return
   endif
@@ -413,20 +428,35 @@ export def Rename(new_name: string)
 
   var changes = ComputeLinkUpdates(b:wj_root, old_basename, new_basename)
 
-  if rename(old_path, new_path) != 0
-    Error('failed to rename: ' .. old_path .. ' -> ' .. new_path)
-    return
+  # Case-only renames go via a temp path so that case-insensitive
+  # filesystems don't treat source and destination as the same inode.
+  if is_case_only_rename
+    var tmp = new_path .. '.wj-tmp-' .. localtime()
+    if rename(old_path, tmp) != 0 || rename(tmp, new_path) != 0
+      Error('failed to rename: ' .. old_path .. ' -> ' .. new_path)
+      return
+    endif
+  else
+    if rename(old_path, new_path) != 0
+      Error('failed to rename: ' .. old_path .. ' -> ' .. new_path)
+      return
+    endif
   endif
 
   var view = winsaveview()
   execute 'file' fnameescape(new_path)
   var total = 0
+  var write_failures: list<string> = []
   for change in changes
     var target = change.path ==# old_path ? new_path : change.path
     var perm = getfperm(target)
-    writefile(split(change.content, "\n", 1), target)
-    if !empty(perm)
-      setfperm(target, perm)
+    if writefile(split(change.content, "\n", 1), target) < 0
+      write_failures += [target]
+      continue
+    endif
+    if !empty(perm) && !setfperm(target, perm)
+      # Permissions couldn't be restored; surface a warning but proceed.
+      Error('could not restore permissions on ' .. target)
     endif
     total += change.count
   endfor
@@ -434,6 +464,13 @@ export def Rename(new_name: string)
   edit!
   winrestview(view)
   checktime
+
+  if !empty(write_failures)
+    Error(printf('renamed to %s.md but %d file(s) failed to update: %s',
+          \ new_basename, len(write_failures),
+          \ join(write_failures, ', ')))
+    return
+  endif
   echo printf('wikijump: renamed to %s.md, %d link(s) updated',
         \ new_basename, total)
 enddef
@@ -499,6 +536,14 @@ enddef
 # Called from the BufEnter autocmd. Populates buffer-local state when the
 # buffer sits inside a notebook; clears it otherwise.
 export def OnBufEnter()
+  # Skip terminal, quickfix, help, command-line, and other non-file
+  # buffers. Their `%:p` is a synthetic string ("term://…" etc.) that
+  # would walk the resolver up a phantom path.
+  if !empty(&buftype)
+    unlet! b:wj_root
+    unlet! b:wj_index_name
+    return
+  endif
   var name = expand('%:p')
   if empty(name)
     unlet! b:wj_root

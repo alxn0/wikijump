@@ -57,6 +57,32 @@ def RunFile(path: string)
   endfor
 enddef
 
+# Pre-scan: refuse to run if two test files declare a Test_* function
+# with the same name. Vim's global function table would silently let the
+# later definition shadow the earlier, and our `before`/`after` filter
+# would drop the redefinition entirely — neither version of the test
+# would actually execute.
+def CheckForDuplicates(files: list<string>)
+  var origin: dict<string> = {}
+  for f in files
+    for line in readfile(f)
+      var name = matchstr(line, '\<def\s\+g:\zsTest_\w\+')
+      if empty(name)
+        continue
+      endif
+      if has_key(origin, name)
+        Log(printf('DUPLICATE Test_ name %s in %s (first seen in %s)',
+              \ name, f, origin[name]))
+        g:wj_test_failures += 1
+      else
+        origin[name] = f
+      endif
+    endfor
+  endfor
+enddef
+
+CheckForDuplicates(argv())
+
 for f in argv()
   RunFile(f)
 endfor

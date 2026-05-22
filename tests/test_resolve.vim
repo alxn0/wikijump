@@ -61,3 +61,17 @@ def g:Test_WikijumpRoot_outside_errors()
   bwipeout!
 enddef
 
+def g:Test_OnBufEnter_skips_non_file_buffers()
+  # Switch to the existing notebook file first to set b:wj_root.
+  execute 'edit' fnameescape(FIX .. '/notebook/notes/foo.md')
+  assert_true(exists('b:wj_root'))
+  # Now switch to a buffer with buftype set (synthetic). OnBufEnter
+  # must NOT walk the resolver against the synthetic name.
+  enew!
+  setlocal buftype=nofile
+  call wikijump#OnBufEnter()
+  assert_false(exists('b:wj_root'))
+  bwipeout!
+  bwipeout!
+enddef
+
