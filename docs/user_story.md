@@ -63,8 +63,6 @@ There is no global fallback and no bang variant. If I want a shortcut to a speci
 
 **For markdown links, Vim's built-in filename completion (`<C-x><C-f>`) handles it.** With `path` configured to include the current file's directory, it proposes relative paths. The plugin does not duplicate this.
 
-**`:WikijumpWrap` wraps the visual selection in `[[…]]`.** Useful for converting existing text into a link without retyping. Like the next/previous link commands, it's a command rather than a default mapping — I bind it myself if I want it (`xnoremap <leader>l :WikijumpWrap<CR>` is a typical choice).
-
 ## Awareness of where I am
 
 **`:WikijumpRoot` echoes the resolved notebook root.** Useful when I am not sure which notebook a buffer belongs to. Pure debugging — no side effects.

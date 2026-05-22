@@ -13,7 +13,6 @@ notebooks. Single-buffer, opinionated, and small.
 - `:WikijumpNext` / `:WikijumpPrev` cycle through wikilinks in the
   buffer (markdown `[](…)` links are skipped).
 - `:WikijumpIndex` opens the notebook's landing page.
-- `:WikijumpWrap` wraps the visual selection in `[[…]]`.
 - Inside `[[…`, `<C-x><C-u>` completes notebook basenames.
 
 ## What it does not do
@@ -54,9 +53,6 @@ The plugin ships only one default mapping: `<CR>` to follow the link
 under the cursor (markdown buffers in a notebook). Bind the rest yourself:
 
 ```vim
-" In your config — wrap selection in [[…]]
-xmap <leader>l :WikijumpWrap<CR>
-
 " Tab / Shift-Tab cycle wikilinks (Neovim or GUI; on terminal Vim, <Tab>
 " shadows jumplist forward).
 augroup wikijump_keys

@@ -73,11 +73,6 @@ Files under directories whose names begin with `_` or `.` (for example
         Echo the resolved notebook root for the current buffer. Errors
         when the buffer is outside any notebook. Pure diagnostic.
 
-                                                                *:WikijumpWrap*
-:WikijumpWrap
-        Wrap the last visual selection in `[[…]]`. Used after selecting
-        text in visual mode: `vw:WikijumpWrap<CR>`.
-
 ==============================================================================
 4. Mappings                                              *wikijump-mappings*
 
@@ -93,12 +88,11 @@ Files under directories whose names begin with `_` or `.` (for example
 >
             imap <C-x>w <Plug>(wikijump-complete)
 <
-The plugin claims no other keys. Bind |:WikijumpNext|, |:WikijumpPrev|,
-and |:WikijumpWrap| from your config — typical choices:
+The plugin claims no other keys. Bind |:WikijumpNext| and |:WikijumpPrev|
+from your config — typical choices:
 >
         nmap <buffer> <Tab>   <Cmd>WikijumpNext<CR>
         nmap <buffer> <S-Tab> <Cmd>WikijumpPrev<CR>
-        xmap <buffer> <leader>l :WikijumpWrap<CR>
 <
 ==============================================================================
 5. Completion                                          *wikijump-completion*

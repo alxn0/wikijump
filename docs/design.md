@@ -70,8 +70,6 @@ A record of choices made and the alternatives rejected, so the rationale survive
 
 **No intra-buffer link override of `<C-o>`/`<C-i>`.** wiki.vim repurposes them for prev/next link inside the buffer. Rejected: Vim's jumplist is too useful to lose, and `:WikijumpNext` / `:WikijumpPrev` cover the use case via a key the user picks.
 
-**`:WikijumpWrap` is a command, not a default mapping.** Wraps the visual selection in `[[…]]` for converting existing text into a link without retyping. Exposed only as a command for consistency with `:WikijumpNext`/`:WikijumpPrev` — the user picks the key. Rejected: shipping a default mapping (e.g. `<leader>l`). Reasons: every default mapping is one fewer key the user can claim freely; the operation is common enough to deserve a command, not so common that it earns a default binding. Also rejected: skipping the feature entirely and relying on `c[[<C-r>"]]<Esc>`. Reasons: the operation is frequent enough in note-taking workflows that a one-token command beats a four-keystroke incantation.
-
 ## Completion
 
 **Completion activates only inside `[[…`.** Triggered by the standard omni-completion key. Rejected: surfacing note names in general keyword completion (`<C-n>`). Reasons: pollution of prose completion with note names creates noise; the explicit `[[` prefix is a clear signal of intent and costs one keystroke.
@@ -84,7 +82,7 @@ A record of choices made and the alternatives rejected, so the rationale survive
 
 **`:WikijumpIndex` is purely local — no global fallback, no bang variant.** Resolution walks up from the current buffer; the nearest `.wikijump` wins. If the buffer is outside any notebook, the command errors. Rationale: when editing a file inside a notebook, walk-up naturally finds the right root — no fallback logic needed. When editing a file outside any notebook, opening "some other" landing page is a personal shortcut, not a command's responsibility; the user wires their own mapping if they want it. Rejected: an earlier design where bare `:WikijumpIndex` fell back to a configured global notebook and `:WikijumpIndex!` forced it. Reasons: location-driven tools should stay location-driven; the bang variant was extra surface for a case better handled by user mapping.
 
-**No bang variants on any current command.** None of `:WikijumpIndex`, `:WikijumpRoot`, `:WikijumpFollow`, `:WikijumpNext`, `:WikijumpPrev`, `:WikijumpWrap` has a meaningful global/local distinction. The bang convention is held in reserve for a future command that genuinely needs it; it is not used decoratively.
+**No bang variants on any current command.** None of `:WikijumpIndex`, `:WikijumpRoot`, `:WikijumpFollow`, `:WikijumpNext`, `:WikijumpPrev` has a meaningful global/local distinction. The bang convention is held in reserve for a future command that genuinely needs it; it is not used decoratively.
 
 ## File organization conventions
 

@@ -296,33 +296,6 @@ export def MaybeAutoComplete()
   complete(start, Candidates(base))
 enddef
 
-# ---------- Wrap ----------
-
-# Wrap the last visual selection in [[…]]. Called via :WikijumpWrap with a
-# range; the range itself is ignored — the marks '< and '> drive the
-# operation so the selection geometry (charwise / linewise / blockwise)
-# is preserved through the command-line round trip.
-export def Wrap()
-  var start = getpos("'<")
-  var finish = getpos("'>")
-  if start[1] == 0 || finish[1] == 0
-    Error('no visual selection')
-    return
-  endif
-  if start[1] != finish[1]
-    Error('wrap requires a single-line selection')
-    return
-  endif
-  var lnum = start[1]
-  var line = getline(lnum)
-  var s = start[2] - 1
-  var e = finish[2]   # inclusive end column, 1-based; slice exclusive
-  var before = strpart(line, 0, s)
-  var middle = strpart(line, s, e - s)
-  var after = strpart(line, e)
-  setline(lnum, before .. '[[' .. middle .. ']]' .. after)
-enddef
-
 # ---------- Index ----------
 
 # Open the notebook's landing page in the current window. Filename comes
