@@ -63,6 +63,115 @@ export def ResolveIndexName(root: string): string
   return get(g:, 'wj_index_name', 'index.md')
 enddef
 
+# ---------- Wikilink parsing ----------
+
+const LINK_PATTERN = '\[\[[^\]\[\n]\+\]\]'
+
+# Return the [[wikilink]] under the cursor as a dict
+#   {target, anchor, display, col_start, col_end}
+# or empty dict when the cursor is not inside one.
+export def LinkUnderCursor(): dict<any>
+  var line = getline('.')
+  var col = col('.')
+  var start = 0
+  while true
+    var m = matchstrpos(line, LINK_PATTERN, start)
+    var text = m[0]
+    var s = m[1]
+    var e = m[2]
+    if s < 0
+      return {}
+    endif
+    # Vim column is 1-based; matchstrpos returns 0-based byte positions.
+    # The link spans bytes [s, e), so cursor column in [s+1, e] is "inside".
+    if col >= s + 1 && col <= e
+      var inner = text[2 : -3]
+      var display = inner
+      var pipe = stridx(inner, '|')
+      if pipe >= 0
+        display = inner[pipe + 1 :]
+        inner = inner[: pipe - 1]
+      endif
+      var target = inner
+      var anchor = ''
+      var hash = stridx(inner, '#')
+      if hash >= 0
+        target = inner[: hash - 1]
+        anchor = inner[hash + 1 :]
+      endif
+      return {
+        target: trim(target),
+        anchor: trim(anchor),
+        display: trim(display),
+        col_start: s + 1,
+        col_end: e,
+      }
+    endif
+    start = e
+  endwhile
+  return {}
+enddef
+
+# ---------- Follow ----------
+
+# Resolve a basename to a path under root. Returns empty string when no
+# match is found. Paths containing any directory segment starting with `_`
+# or `.` (excluding root itself) are excluded.
+export def ResolveTarget(root: string, basename: string): string
+  if empty(basename)
+    return ''
+  endif
+  var pattern = root .. '/**/' .. basename .. '.md'
+  for path in glob(pattern, true, true)
+    if !IsExcludedPath(root, path)
+      return path
+    endif
+  endfor
+  return ''
+enddef
+
+def IsExcludedPath(root: string, path: string): bool
+  var rel = strpart(path, len(root) + 1)
+  for segment in split(fnamemodify(rel, ':h'), '/')
+    if segment =~# '^[._]'
+      return true
+    endif
+  endfor
+  return false
+enddef
+
+# Entry point for :WikijumpFollow and the <CR> map. Returns true when a
+# link was followed, false when there was nothing to follow.
+export def Follow(): bool
+  if !exists('b:wj_root') || empty(b:wj_root)
+    Error('not in a notebook')
+    return false
+  endif
+  var link = LinkUnderCursor()
+  if empty(link)
+    return false
+  endif
+  var path = ResolveTarget(b:wj_root, link.target)
+  if empty(path)
+    path = b:wj_root .. '/' .. link.target .. '.md'
+  endif
+  execute 'edit' fnameescape(path)
+  return true
+enddef
+
+# Expression mapping used by the <CR> map: returns either a follow
+# invocation that consumes the key, or a literal <CR> so the default
+# behavior is preserved off-link.
+export def FollowExpr(): string
+  if !exists('b:wj_root') || empty(b:wj_root)
+    return "\<CR>"
+  endif
+  if empty(LinkUnderCursor())
+    return "\<CR>"
+  endif
+  return ":WikijumpFollow\<CR>"
+enddef
+
 # ---------- Diagnostics ----------
 
 # Echo the resolved notebook root for the current buffer. Errors if the

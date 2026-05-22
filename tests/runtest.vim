@@ -16,18 +16,23 @@ def Log(line: string)
   add(test_log, line)
 enddef
 
-def RunFile(path: string)
-  execute 'source' fnameescape(path)
-
-  var funcs: list<string> = []
+def TestFuncs(): list<string>
+  var out: list<string> = []
   var listing = execute('function /^Test_')
   for line in split(listing, '\n')
     # Listing prefix is "def" for vim9 def-functions and "function" for legacy.
     var name = matchstr(line, '^\%(def\|function\) \zs[A-Za-z0-9_#]\+')
     if !empty(name)
-      funcs += [name]
+      out += [name]
     endif
   endfor
+  return out
+enddef
+
+def RunFile(path: string)
+  var before = TestFuncs()
+  execute 'source' fnameescape(path)
+  var funcs = filter(TestFuncs(), (_, v) => index(before, v) < 0)
 
   Log(printf('=== %s (%d tests) ===', path, len(funcs)))
   for fn in funcs

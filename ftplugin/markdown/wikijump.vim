@@ -5,3 +5,5 @@ vim9script
 if !exists('b:wj_root') || empty(b:wj_root)
   finish
 endif
+
+nnoremap <buffer><silent><expr> <CR> wikijump#FollowExpr()

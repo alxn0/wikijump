@@ -15,4 +15,5 @@ augroup wikijump
   autocmd BufEnter * call wikijump#OnBufEnter()
 augroup END
 
-command! -bar WikijumpRoot call wikijump#Root()
+command! -bar WikijumpRoot   call wikijump#Root()
+command! -bar WikijumpFollow call wikijump#Follow()

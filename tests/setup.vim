@@ -11,3 +11,6 @@ runtime! plugin/wikijump.vim
 
 # Make sure markdown filetype detection is active so ftplugin loads.
 filetype plugin on
+
+# Allow switching between modified buffers in tests without errors.
+set hidden
