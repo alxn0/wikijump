@@ -34,8 +34,6 @@ PRs are closed for now.
 - `:WikijumpNext` / `:WikijumpPrev` cycle through wikilinks in the
   buffer (ignore markdown links `[](…)`).
 - `:WikijumpIndex` return to the notebook landing page.
-- `:WikijumpRename {name}` rename the current file and rewrite every
-  `[[wikilink]]` in the notebook that points to it.
 - Inside `[[…`, use `<C-x><C-u>` to complete filenames (or bind
   `<Plug>(wikijump-complete)` if an LSP already owns `completefunc`).
 

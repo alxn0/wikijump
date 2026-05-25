@@ -68,18 +68,6 @@ Files under directories whose names begin with `_` or `.` (for example
         landing page does not exist, the buffer opens empty — saving
         creates the file.
 
-                                                              *:WikijumpRename*
-:WikijumpRename {name}
-        Rename the current file to `{name}.md` in the same directory and
-        rewrite every `[[wikilink]]` in the notebook that targets the
-        old basename — handling `[[name]]`, `[[name|alias]]`,
-        `[[name#section]]`, and `[[name#section|alias]]` forms. The
-        `.md` extension is optional and stripped if present. Errors when
-        the destination already exists, the new name equals the current
-        one, the name contains `[`, `]`, `|`, `#`, `/`, or `\\`, or the
-        buffer is outside a notebook. This is the only command that
-        touches more than one file.
-
                                                                 *:WikijumpRoot*
 :WikijumpRoot
         Echo the resolved notebook root for the current buffer. Errors
