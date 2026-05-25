@@ -26,7 +26,7 @@ A notebook is any directory containing a `.wikijump` marker file. The file
 can be empty (defaults apply), or its first non-blank line can name the
 landing page:
 >
-    README.md
+    index.md
 <
 Resolution walks up from the current buffer until it finds the marker, hits
 a stop marker (default: `.git`), reaches `$HOME`, or reaches the filesystem
@@ -64,7 +64,7 @@ Files under directories whose names begin with `_` or `.` (for example
 :WikijumpIndex
         Open the notebook's landing page. Filename precedence:
         first non-blank line of `.wikijump` → |g:wj_index_name| →
-        `index.md`. Errors when the buffer is outside any notebook. If the
+        `README.md`. Errors when the buffer is outside any notebook. If the
         landing page does not exist, the buffer opens empty — saving
         creates the file.
 
@@ -125,7 +125,7 @@ g:wj_marker_name        default: '.wikijump'
         Filename of the notebook marker.
 
                                                            *g:wj_index_name*
-g:wj_index_name         default: 'index.md'
+g:wj_index_name         default: 'README.md'
         Landing-page filename. Overridden per-notebook by the first
         non-blank line of the marker file.
 

@@ -7,7 +7,7 @@ endif
 g:loaded_wikijump = 1
 
 g:wj_marker_name  = get(g:, 'wj_marker_name',  '.wikijump')
-g:wj_index_name   = get(g:, 'wj_index_name',   'index.md')
+g:wj_index_name   = get(g:, 'wj_index_name',   'README.md')
 g:wj_stop_markers = get(g:, 'wj_stop_markers', ['.git'])
 g:wj_autocomplete = get(g:, 'wj_autocomplete', 0)
 

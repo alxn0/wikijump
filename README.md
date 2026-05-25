@@ -86,7 +86,7 @@ touch .wikijump
 The file's first non-blank line, if present, overrides `g:wj_index_name`.
 
 ```
-README.md
+index.md
 ```
 
 ## Configuration
@@ -94,7 +94,7 @@ README.md
 | Variable | Default | Notes |
 |---|---|---|
 | `g:wj_marker_name`  | `.wikijump` | Notebook sentinel. |
-| `g:wj_index_name`   | `index.md`  | Landing page. Per-notebook override: first line of the marker file. |
+| `g:wj_index_name`   | `README.md` | Landing page. Per-notebook override: first line of the marker file. |
 | `g:wj_stop_markers` | `['.git']`  | Directories (or files) that halt walk-up. |
 | `g:wj_autocomplete` | `0`         | When `1`, completion fires automatically inside `[[…`. |
 

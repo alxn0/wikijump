@@ -6,14 +6,14 @@ const FIX = fnamemodify(resolve(expand('<sfile>:p')), ':h') .. '/fixtures'
 def g:Test_Index_opens_default_landing_page()
   execute 'edit' fnameescape(FIX .. '/notebook/notes/foo.md')
   WikijumpIndex
-  assert_equal(FIX .. '/notebook/index.md', expand('%:p'))
+  assert_equal(FIX .. '/notebook/README.md', expand('%:p'))
   bwipeout!
 enddef
 
 def g:Test_Index_honors_marker_override()
   execute 'edit' fnameescape(FIX .. '/custom_index/notes.md')
   WikijumpIndex
-  assert_equal(FIX .. '/custom_index/README.md', expand('%:p'))
+  assert_equal(FIX .. '/custom_index/index.md', expand('%:p'))
   bwipeout!
 enddef
 
@@ -32,8 +32,8 @@ def g:Test_Index_creates_missing_landing_page_on_save()
   writefile(['# placeholder'], tmp .. '/placeholder.md')
   execute 'edit' fnameescape(tmp .. '/placeholder.md')
   WikijumpIndex
-  assert_equal(tmp .. '/index.md', expand('%:p'))
-  assert_false(filereadable(tmp .. '/index.md'))
+  assert_equal(tmp .. '/README.md', expand('%:p'))
+  assert_false(filereadable(tmp .. '/README.md'))
   bwipeout!
   bwipeout!
   delete(tmp .. '/.wikijump')

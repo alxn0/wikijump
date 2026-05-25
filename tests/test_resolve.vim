@@ -30,14 +30,14 @@ enddef
 
 def g:Test_ResolveIndexName_falls_back_to_global()
   var name = wikijump#ResolveIndexName(FIX .. '/notebook')
-  assert_equal('index.md', name)
+  assert_equal('README.md', name)
 enddef
 
 def g:Test_OnBufEnter_sets_buffer_state_inside_notebook()
   execute 'edit' fnameescape(FIX .. '/notebook/notes/foo.md')
   assert_true(exists('b:wj_root'))
   assert_equal(FIX .. '/notebook', b:wj_root)
-  assert_equal('index.md', b:wj_index_name)
+  assert_equal('README.md', b:wj_index_name)
   bwipeout!
 enddef
 

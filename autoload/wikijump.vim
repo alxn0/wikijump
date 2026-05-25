@@ -58,7 +58,7 @@ export def ReadIndexName(root: string): string
   return ''
 enddef
 
-# Precedence: notebook field -> g:wj_index_name -> 'index.md'.
+# Precedence: notebook field -> g:wj_index_name -> 'README.md'.
 export def ResolveIndexName(root: string): string
   var from_marker = ReadIndexName(root)
   return !empty(from_marker) ? from_marker : g:wj_index_name
@@ -339,7 +339,7 @@ enddef
 # ---------- Index ----------
 
 # Open the notebook's landing page in the current window. Filename comes
-# from b:wj_index_name (notebook field -> g:wj_index_name -> 'index.md').
+# from b:wj_index_name (notebook field -> g:wj_index_name -> 'README.md').
 # Errors when the buffer is not inside a notebook.
 export def Index()
   if !InNotebook()
