@@ -1,10 +1,10 @@
-*wikijump.txt*  Follow and create [[wikilinks]] in markdown notebooks.
+*wikijump.txt*  Follow and create [[wikilinks]] in markdown files.
 
 ==============================================================================
 CONTENTS                                                  *wikijump-contents*
 
   1. Introduction ........................... |wikijump-intro|
-  2. Notebooks .............................. |wikijump-notebook|
+  2. The tree ............................... |wikijump-tree|
   3. Commands ............................... |wikijump-commands|
   4. Mappings ............................... |wikijump-mappings|
   5. Completion ............................. |wikijump-completion|
@@ -14,15 +14,15 @@ CONTENTS                                                  *wikijump-contents*
 ==============================================================================
 1. Introduction                                              *wikijump-intro*
 
-wikijump.vim teaches Vim to follow `[[wikilinks]]` in markdown notebooks.
+wikijump.vim teaches Vim to follow `[[wikilinks]]` in markdown files.
 It is intentionally small: one buffer at a time, no cross-file rename, no
 backlinks, no picker. For everything else, use Vim's built-ins: |gf| for
 markdown links, |gx| for URLs, |CTRL-O| / |CTRL-I| for jumplist.
 
 ==============================================================================
-2. Notebooks                                              *wikijump-notebook*
+2. The tree                                                    *wikijump-tree*
 
-A notebook is any directory containing a `.wikijump` marker file. The file
+A tree is any directory containing a `.wikijump` marker file. The file
 can be empty (defaults apply), or its first non-blank line can name the
 landing page:
 >
@@ -30,11 +30,11 @@ landing page:
 <
 Resolution walks up from the current buffer until it finds the marker, hits
 a stop marker (default: `.git`), reaches `$HOME`, or reaches the filesystem
-root. The first marker found wins; nested notebooks are technically
+root. The first marker found wins; nested trees are technically
 supported but never accidental.
 
-Wikilinks resolve by basename across the notebook tree. `[[foo]]` opens any
-`foo.md` reachable from the notebook root. Folder structure is
+Wikilinks resolve by basename across the tree. `[[foo]]` opens any
+`foo.md` reachable from the root. Folder structure is
 organizational only.
 
 Files under directories whose names begin with `_` or `.` (for example
@@ -62,27 +62,27 @@ Files under directories whose names begin with `_` or `.` (for example
 
                                                                *:WikijumpIndex*
 :WikijumpIndex
-        Open the notebook's landing page. Filename precedence:
+        Open the tree's landing page. Filename precedence:
         first non-blank line of `.wikijump` → |g:wj_index_name| →
-        `README.md`. Errors when the buffer is outside any notebook. If the
+        `README.md`. Errors when the buffer is outside any tree. If the
         landing page does not exist, the buffer opens empty — saving
         creates the file.
 
                                                                 *:WikijumpRoot*
 :WikijumpRoot
-        Echo the resolved notebook root for the current buffer. Errors
-        when the buffer is outside any notebook. Pure diagnostic.
+        Echo the resolved root for the current buffer. Errors
+        when the buffer is outside any tree. Pure diagnostic.
 
 ==============================================================================
 4. Mappings                                              *wikijump-mappings*
 
                                                                   *wikijump-CR*
-<CR>          (normal mode, markdown buffers inside a notebook)
+<CR>          (normal mode, markdown buffers inside a tree)
         Follow the wikilink under the cursor; falls through to default
-        `<CR>` when off a wikilink or outside a notebook.
+        `<CR>` when off a wikilink or outside a tree.
 
                                                   *<Plug>(wikijump-complete)*
-<Plug>(wikijump-complete)        (insert mode, markdown in a notebook)
+<Plug>(wikijump-complete)        (insert mode, markdown in a tree)
         Trigger wikilink completion directly. Use this when something else
         (an LSP, for example) owns |'completefunc'|. Bind it yourself:
 >
@@ -97,7 +97,7 @@ from your config — typical choices:
 ==============================================================================
 5. Completion                                          *wikijump-completion*
 
-Inside `[[…`, |i_CTRL-X_CTRL-U| triggers completion of notebook basenames
+Inside `[[…`, |i_CTRL-X_CTRL-U| triggers completion of file basenames
 (`.md` stripped). The plugin installs `wikijump#Complete` as
 |'completefunc'| only when the slot is empty, so any LSP or other plugin
 that owns |'completefunc'| keeps working.
@@ -122,11 +122,11 @@ takes effect.
 
                                                           *g:wj_marker_name*
 g:wj_marker_name        default: '.wikijump'
-        Filename of the notebook marker.
+        Filename of the marker.
 
                                                            *g:wj_index_name*
 g:wj_index_name         default: 'README.md'
-        Landing-page filename. Overridden per-notebook by the first
+        Landing-page filename. Overridden per-tree by the first
         non-blank line of the marker file.
 
                                                          *g:wj_stop_markers*
@@ -143,15 +143,15 @@ g:wj_autocomplete       default: 0
 7. Buffer-local variables                          *wikijump-buffer-vars*
 
 Both are set on |BufEnter| (and lazily by the markdown ftplugin) for every
-buffer inside a notebook; unset elsewhere.
+buffer inside a tree; unset elsewhere.
 
                                                                     *b:wj_root*
 b:wj_root
-        Absolute path to the notebook root (the directory containing
+        Absolute path to the root (the directory containing
         the marker). Useful for status-line integration.
 
                                                               *b:wj_index_name*
 b:wj_index_name
-        Resolved landing-page filename for this notebook.
+        Resolved landing-page filename for this tree.
 
  vim:tw=78:ts=8:ft=help:norl:

@@ -4,9 +4,9 @@ source <sfile>:h/setup.vim
 const FIX = fnamemodify(resolve(expand('<sfile>:p')), ':h') .. '/fixtures'
 
 def g:Test_Index_opens_default_landing_page()
-  execute 'edit' fnameescape(FIX .. '/notebook/notes/foo.md')
+  execute 'edit' fnameescape(FIX .. '/tree/notes/foo.md')
   WikijumpIndex
-  assert_equal(FIX .. '/notebook/README.md', expand('%:p'))
+  assert_equal(FIX .. '/tree/README.md', expand('%:p'))
   bwipeout!
 enddef
 
@@ -17,15 +17,15 @@ def g:Test_Index_honors_marker_override()
   bwipeout!
 enddef
 
-def g:Test_Index_outside_notebook_errors()
+def g:Test_Index_outside_tree_errors()
   execute 'edit' fnameescape(FIX .. '/outside/random.md')
   var out = execute('WikijumpIndex')
-  assert_match('not in a notebook', out)
+  assert_match('no .wikijump marker found', out)
   bwipeout!
 enddef
 
 def g:Test_Index_creates_missing_landing_page_on_save()
-  # Fresh notebook where the landing page does not yet exist.
+  # Fresh tree where the landing page does not yet exist.
   var tmp = tempname()
   mkdir(tmp, 'p')
   writefile([], tmp .. '/.wikijump')

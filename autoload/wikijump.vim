@@ -1,16 +1,16 @@
 vim9script
 # Implementation for wikijump.vim. Loaded on first call via autoload.
 
-# True when the current buffer sits inside a resolved notebook.
-def InNotebook(): bool
+# True when the current buffer sits inside a resolved tree (b:wj_root set).
+def HasRoot(): bool
   return exists('b:wj_root') && !empty(b:wj_root)
 enddef
 
-# ---------- Notebook resolution ----------
+# ---------- Tree resolution ----------
 
 # Walk up from `start` looking for the marker file. Stop at any directory in
 # g:wj_stop_markers, at $HOME, or at the filesystem root. Returns the
-# notebook root path (containing the marker) or empty string.
+# root path (containing the marker) or empty string.
 export def FindRoot(start: string): string
   var marker = g:wj_marker_name
   var stops = g:wj_stop_markers
@@ -58,7 +58,7 @@ export def ReadIndexName(root: string): string
   return ''
 enddef
 
-# Precedence: notebook field -> g:wj_index_name -> 'README.md'.
+# Precedence: marker field -> g:wj_index_name -> 'README.md'.
 export def ResolveIndexName(root: string): string
   var from_marker = ReadIndexName(root)
   return !empty(from_marker) ? from_marker : g:wj_index_name
@@ -145,7 +145,7 @@ export def ResolveTarget(root: string, basename: string): string
 enddef
 
 # Wrap glob metacharacters in single-character classes so a wikilink
-# target like `foo*` doesn't accidentally pattern-match other notes.
+# target like `foo*` doesn't accidentally pattern-match other files.
 def EscapeGlobMeta(s: string): string
   return substitute(s, '[][*?]', '[&]', 'g')
 enddef
@@ -167,8 +167,8 @@ enddef
 # Entry point for :WikijumpFollow and the <CR> map. Returns true when a
 # link was followed, false when there was nothing to follow.
 export def Follow(): bool
-  if !InNotebook()
-    Error('not in a notebook')
+  if !HasRoot()
+    Error('no .wikijump marker found')
     return false
   endif
   var link = LinkUnderCursor()
@@ -238,7 +238,7 @@ enddef
 # invocation that consumes the key, or a literal <CR> so the default
 # behavior is preserved off-link.
 export def FollowExpr(): string
-  if !InNotebook() || empty(LinkUnderCursor())
+  if !HasRoot() || empty(LinkUnderCursor())
     return "\<CR>"
   endif
   return ":WikijumpFollow\<CR>"
@@ -277,7 +277,7 @@ def FindCompletionStart(): number
 enddef
 
 def Candidates(base: string): list<dict<string>>
-  if !InNotebook()
+  if !HasRoot()
     return []
   endif
   var pattern = b:wj_root .. '/**/*.md'
@@ -338,12 +338,12 @@ enddef
 
 # ---------- Index ----------
 
-# Open the notebook's landing page in the current window. Filename comes
-# from b:wj_index_name (notebook field -> g:wj_index_name -> 'README.md').
-# Errors when the buffer is not inside a notebook.
+# Open the tree's landing page in the current window. Filename comes
+# from b:wj_index_name (marker field -> g:wj_index_name -> 'README.md').
+# Errors when the buffer is not inside a tree.
 export def Index()
-  if !InNotebook()
-    Error('not in a notebook')
+  if !HasRoot()
+    Error('no .wikijump marker found')
     return
   endif
   var path = b:wj_root .. '/' .. b:wj_index_name
@@ -352,11 +352,11 @@ enddef
 
 # ---------- Diagnostics ----------
 
-# Echo the resolved notebook root for the current buffer. Errors if the
-# buffer is not inside any notebook.
+# Echo the resolved root for the current buffer. Errors if the
+# buffer is not inside any tree.
 export def Root()
-  if !InNotebook()
-    Error('not in a notebook')
+  if !HasRoot()
+    Error('no .wikijump marker found')
     return
   endif
   echo b:wj_root
@@ -369,7 +369,7 @@ def Error(msg: string)
 enddef
 
 # Called from the BufEnter autocmd. Populates buffer-local state when the
-# buffer sits inside a notebook; clears it otherwise.
+# buffer sits inside a tree; clears it otherwise.
 export def OnBufEnter()
   # Skip terminal, quickfix, help, command-line, and other non-file
   # buffers. Their `%:p` is a synthetic string ("term://…" etc.) that

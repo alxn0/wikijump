@@ -3,14 +3,14 @@ source <sfile>:h/setup.vim
 
 const FIX = fnamemodify(resolve(expand('<sfile>:p')), ':h') .. '/fixtures'
 
-def OpenInNotebook()
-  execute 'edit' fnameescape(FIX .. '/notebook/index.md')
+def OpenInTree()
+  execute 'edit' fnameescape(FIX .. '/tree/index.md')
 enddef
 
 def g:Test_Complete_findstart_inside_brackets()
-  OpenInNotebook()
+  OpenInTree()
   enew!
-  b:wj_root = FIX .. '/notebook'
+  b:wj_root = FIX .. '/tree'
   setline(1, 'See [[fo')
   cursor(1, len(getline(1)) + 1)
   var start = wikijump#Complete(1, '')
@@ -21,9 +21,9 @@ def g:Test_Complete_findstart_inside_brackets()
 enddef
 
 def g:Test_Complete_findstart_outside_brackets()
-  OpenInNotebook()
+  OpenInTree()
   enew!
-  b:wj_root = FIX .. '/notebook'
+  b:wj_root = FIX .. '/tree'
   setline(1, 'just plain prose')
   cursor(1, len(getline(1)) + 1)
   assert_equal(-2, wikijump#Complete(1, ''))
@@ -31,7 +31,7 @@ def g:Test_Complete_findstart_outside_brackets()
 enddef
 
 def g:Test_Complete_candidates_listed_by_basename()
-  OpenInNotebook()
+  OpenInTree()
   var candidates = wikijump#Complete(0, '')
   var words = map(copy(candidates), (_, c) => c.word)
   assert_true(index(words, 'foo') >= 0)
@@ -41,7 +41,7 @@ def g:Test_Complete_candidates_listed_by_basename()
 enddef
 
 def g:Test_Complete_excludes_underscore_dirs()
-  OpenInNotebook()
+  OpenInTree()
   var candidates = wikijump#Complete(0, '')
   var words = map(copy(candidates), (_, c) => c.word)
   assert_equal(-1, index(words, 'skip'))
@@ -49,7 +49,7 @@ def g:Test_Complete_excludes_underscore_dirs()
 enddef
 
 def g:Test_Complete_filters_by_base()
-  OpenInNotebook()
+  OpenInTree()
   var candidates = wikijump#Complete(0, 'fo')
   var words = map(copy(candidates), (_, c) => c.word)
   assert_true(index(words, 'foo') >= 0)
@@ -57,8 +57,8 @@ def g:Test_Complete_filters_by_base()
   bwipeout!
 enddef
 
-def g:Test_Completefunc_installed_in_notebook_markdown()
-  execute 'edit' fnameescape(FIX .. '/notebook/index.md')
+def g:Test_Completefunc_installed_in_tree_markdown()
+  execute 'edit' fnameescape(FIX .. '/tree/index.md')
   assert_equal('wikijump#Complete', &l:completefunc)
   bwipeout!
 enddef
@@ -68,7 +68,7 @@ def g:Test_Completefunc_preserves_existing_value()
   # Pretend the user already has a completefunc; verify ftplugin leaves it.
   execute 'edit' fnameescape(FIX .. '/outside/random.md')
   setlocal completefunc=MyOwnComplete
-  execute 'edit' fnameescape(FIX .. '/notebook/index.md')
+  execute 'edit' fnameescape(FIX .. '/tree/index.md')
   setlocal completefunc=MyOwnComplete
   setfiletype markdown
   doautocmd FileType markdown
@@ -77,21 +77,21 @@ def g:Test_Completefunc_preserves_existing_value()
   bwipeout!
 enddef
 
-def g:Test_Plug_mapping_exists_in_notebook_buffer()
-  execute 'edit' fnameescape(FIX .. '/notebook/index.md')
+def g:Test_Plug_mapping_exists_in_tree_buffer()
+  execute 'edit' fnameescape(FIX .. '/tree/index.md')
   assert_match('wikijump#TriggerComplete',
         \ maparg('<Plug>(wikijump-complete)', 'i'))
   bwipeout!
 enddef
 
 def g:Test_Complete_dedupes_basename_collisions()
-  var nb = tempname()
-  mkdir(nb .. '/a', 'p')
-  mkdir(nb .. '/b', 'p')
-  writefile([], nb .. '/.wikijump')
-  writefile([], nb .. '/a/foo.md')
-  writefile([], nb .. '/b/foo.md')
-  execute 'edit' fnameescape(nb .. '/a/foo.md')
+  var tr = tempname()
+  mkdir(tr .. '/a', 'p')
+  mkdir(tr .. '/b', 'p')
+  writefile([], tr .. '/.wikijump')
+  writefile([], tr .. '/a/foo.md')
+  writefile([], tr .. '/b/foo.md')
+  execute 'edit' fnameescape(tr .. '/a/foo.md')
   var candidates = wikijump#Complete(0, '')
   var foo_count = 0
   for c in candidates
@@ -101,5 +101,5 @@ def g:Test_Complete_dedupes_basename_collisions()
   endfor
   assert_equal(1, foo_count)
   bwipeout!
-  delete(nb, 'rf')
+  delete(tr, 'rf')
 enddef

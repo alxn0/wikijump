@@ -1,3 +1,0 @@
-# Notebook index
-
-Welcome.

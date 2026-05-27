@@ -1,3 +1,3 @@
 # Random
 
-Not inside any notebook.
+Not inside any tree.

@@ -17,7 +17,7 @@ sandbox="$root/tmp/sandbox"
 
 rm -rf "$sandbox"
 mkdir -p "$sandbox"
-cp -r "$root/tests/fixtures/notebook/." "$sandbox/"
+cp -r "$root/tests/fixtures/tree/." "$sandbox/"
 
 # -u NONE skips the user's vimrc *and* the auto-sourcing of plugin/ files,
 # so we put this plugin on the runtimepath and source it by hand — the same

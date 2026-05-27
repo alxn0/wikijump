@@ -1,5 +1,5 @@
 vim9script
-# Buffer-local wiring for markdown buffers inside a notebook.
+# Buffer-local wiring for markdown buffers inside a tree.
 #
 # Vim's filetype detection runs *before* BufEnter, so b:wj_root may not be
 # populated yet when this ftplugin first fires. Calling OnBufEnter here

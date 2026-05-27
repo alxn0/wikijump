@@ -1,5 +1,5 @@
 vim9script
-# wikijump.vim — follow and create [[wikilinks]] in markdown notebooks.
+# wikijump.vim — follow and create [[wikilinks]] in markdown files.
 
 if exists('g:loaded_wikijump')
   finish

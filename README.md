@@ -3,8 +3,8 @@
 A simple Vim9 plugin to follow and create `[[wikilinks]]` in markdown
 file. Small and opinionated.
 
-It revolves on the concept of *notebook*, which is simply a folder
-within which filenames can be used as `[[wikilinks]]`.
+It operates on the tree under a `.wikijump` marker, within which
+filenames can be used as `[[wikilinks]]`.
 
 ## Rationale
 
@@ -27,13 +27,13 @@ PRs are closed for now.
 ## Functionnality
 
 - Press `<CR>` on a [[wikilink]] open it in the same buffer (i.e.,
-  jump). Use basename resolution in the present notebook (no nested
-  structure, flat namespace.
+  jump). Use basename resolution in the present tree (no nested
+  structure, flat namespace).
 - If target is missing, opens an empty buffer as
-  `<notebook>/<wikilink>.md`.
+  `<root>/<wikilink>.md`.
 - `:WikijumpNext` / `:WikijumpPrev` cycle through wikilinks in the
   buffer (ignore markdown links `[](…)`).
-- `:WikijumpIndex` return to the notebook landing page.
+- `:WikijumpIndex` return to the tree's landing page.
 - Inside `[[…`, use `<C-x><C-u>` to complete filenames (or bind
   `<Plug>(wikijump-complete)` if an LSP already owns `completefunc`).
 
@@ -73,11 +73,11 @@ call minpac#add('alxn0/wikijump')  " minpac
 cd ~/.vim/bundle && git clone https://github.com/alxn0/wikijump  # pathogen
 ```
 
-## Notebook
+## The tree
 
-A notebooks is simply a folder with a `.wikijump` file in it.
+A tree is simply a folder with a `.wikijump` file in it.
 
-So initiating a notebook in Unix-like environment is simply:
+So initiating a tree in a Unix-like environment is simply:
 
 ```sh
 touch .wikijump
@@ -93,8 +93,8 @@ index.md
 
 | Variable | Default | Notes |
 |---|---|---|
-| `g:wj_marker_name`  | `.wikijump` | Notebook sentinel. |
-| `g:wj_index_name`   | `README.md` | Landing page. Per-notebook override: first line of the marker file. |
+| `g:wj_marker_name`  | `.wikijump` | Marker filename. |
+| `g:wj_index_name`   | `README.md` | Landing page. Per-tree override: first line of the marker file. |
 | `g:wj_stop_markers` | `['.git']`  | Directories (or files) that halt walk-up. |
 | `g:wj_autocomplete` | `0`         | When `1`, completion fires automatically inside `[[…`. |
 
