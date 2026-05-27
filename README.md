@@ -22,7 +22,7 @@ learn Vim9 script and improve a daily workflow.
 Design decisions and intended usage are the human author's; see
 `docs/user_story.md` and `docs/design.md`.
 
-PRs are closed for now.
+PRs won't be answered by now.
 
 ## Functionnality
 
