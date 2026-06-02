@@ -33,7 +33,6 @@ PRs won't be answered by now.
   `<root>/<wikilink>.md`.
 - `:WikijumpNext` / `:WikijumpPrev` cycle through wikilinks in the
   buffer (ignore markdown links `[](…)`).
-- `:WikijumpIndex` return to the tree's landing page.
 - Inside `[[…`, use `<C-x><C-u>` to complete filenames (or bind
   `<Plug>(wikijump-complete)` if an LSP already owns `completefunc`).
 
@@ -83,18 +82,13 @@ So initiating a tree in a Unix-like environment is simply:
 touch .wikijump
 ```
 
-The file's first non-blank line, if present, overrides `g:wj_index_name`.
-
-```
-index.md
-```
+The file's contents are ignored — its presence alone marks the tree root.
 
 ## Configuration
 
 | Variable | Default | Notes |
 |---|---|---|
 | `g:wj_marker_name`  | `.wikijump` | Marker filename. |
-| `g:wj_index_name`   | `README.md` | Landing page. Per-tree override: first line of the marker file. |
 | `g:wj_stop_markers` | `['.git']`  | Directories (or files) that halt walk-up. |
 | `g:wj_autocomplete` | `0`         | When `1`, completion fires automatically inside `[[…`. |
 

@@ -49,28 +49,6 @@ export def FindRoot(start: string): string
   return ''
 enddef
 
-# Read the first non-blank line of <root>/<marker>, trimmed.
-# Returns empty string if the file is empty or whitespace-only.
-export def ReadIndexName(root: string): string
-  var path = root .. '/' .. g:wj_marker_name
-  if !filereadable(path)
-    return ''
-  endif
-  for line in readfile(path)
-    var trimmed = trim(line)
-    if !empty(trimmed)
-      return trimmed
-    endif
-  endfor
-  return ''
-enddef
-
-# Precedence: marker field -> g:wj_index_name -> 'README.md'.
-export def ResolveIndexName(root: string): string
-  var from_marker = ReadIndexName(root)
-  return !empty(from_marker) ? from_marker : g:wj_index_name
-enddef
-
 # ---------- Wikilink parsing ----------
 
 const LINK_PATTERN = '\[\[[^\]\[\n]\+\]\]'
@@ -391,20 +369,6 @@ export def MaybeAutoComplete()
   complete(start, Candidates(base))
 enddef
 
-# ---------- Index ----------
-
-# Open the tree's landing page in the current window. Filename comes
-# from b:wj_index_name (marker field -> g:wj_index_name -> 'README.md').
-# Errors when the buffer is not inside a tree.
-export def Index()
-  if !HasRoot()
-    Error('no .wikijump marker found')
-    return
-  endif
-  var path = b:wj_root .. '/' .. b:wj_index_name
-  execute 'edit' fnameescape(path)
-enddef
-
 # ---------- Diagnostics ----------
 
 # Echo the resolved root for the current buffer. Errors if the
@@ -431,21 +395,17 @@ export def OnBufEnter()
   # would walk the resolver up a phantom path.
   if !empty(&buftype)
     unlet! b:wj_root
-    unlet! b:wj_index_name
     return
   endif
   var name = expand('%:p')
   if empty(name)
     unlet! b:wj_root
-    unlet! b:wj_index_name
     return
   endif
   var root = FindRoot(name)
   if empty(root)
     unlet! b:wj_root
-    unlet! b:wj_index_name
     return
   endif
   b:wj_root = root
-  b:wj_index_name = ResolveIndexName(root)
 enddef

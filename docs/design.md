@@ -16,7 +16,7 @@ A record of choices made and the alternatives rejected, so the rationale survive
 
 **Verb: "jump".** Vim's own vocabulary for discontinuous, jumplist-pushing navigation is "jump" (`<C-]>`, `:jumps`, `]m`). Follow uses `:edit`, which pushes to the jumplist. Most other plugins in the space use "Follow" for the same action; the precedent is acknowledged, but "jump" is more Vim-native.
 
-**Commands use the full prefix `Wikijump`; variables use the short prefix `wj_`.** Commands are typed rarely and discovered via `:Wikijump<Tab>`, so legibility wins — `:WikijumpIndex` reads as English. Variables appear in plugin code and user config repeatedly, so terseness wins — `b:wj_root`, `g:wj_index_name` are pleasant to type and read.
+**Commands use the full prefix `Wikijump`; variables use the short prefix `wj_`.** Commands are typed rarely and discovered via `:Wikijump<Tab>`, so legibility wins — `:WikijumpFollow` reads as English. Variables appear in plugin code and user config repeatedly, so terseness wins — `b:wj_root`, `g:wj_marker_name` are pleasant to type and read.
 
 ## Marker
 
@@ -24,15 +24,12 @@ A record of choices made and the alternatives rejected, so the rationale survive
 
 **The marker filename is configurable via `g:wj_marker_name`** but practically always left at the default. The variable exists for symmetry with the rest of the config surface, not because changing it is encouraged.
 
-**Marker file states form a clean trichotomy:**
+**Marker presence is the whole signal; its contents are ignored.**
 
 - File does not exist → directory is not a tree.
-- File exists and is empty (or whitespace-only) → a tree, use all defaults.
-- File exists and the first non-blank line is a filename → a tree, that filename overrides `g:wj_index_name` for this tree.
+- File exists → a tree root.
 
-**The format is one filename per file, no other syntax.** Rejected: `key: value` lines, `.env`-style `key=value`, JSON, YAML, TOML. Reasons walked through in conversation: any ad-hoc key-value format requires documenting rules for whitespace, quoting, and edge characters (`=` in filenames, leading spaces), and editor tooling can't help validate it. JSON or YAML would handle arbitrary filenames correctly but introduce parser dependencies and a documentation burden disproportionate to the single setting actually needed. A single filename on one line handles every legal filename (spaces, equals signs, anything but newlines) with zero parsing rules. If a second per-tree setting ever earns its place, the upgrade path is unambiguous: detect a `{` on line 1, parse as JSON; otherwise the legacy first-line-filename interpretation. Migration is one `filereadable` and one character check.
-
-**The parser is eight lines of Vim9.** No regex, no escape handling, no edge cases. Trim the first non-blank line; that's the result.
+The marker once carried a per-tree landing-page filename on its first line, read only by `:WikijumpIndex`. That command and its index-name machinery were removed (see "Landing page (removed)"), so the file's contents now mean nothing — `.wikijump` is a pure boolean sentinel, like an empty `.git`. There is no parser at all. If a per-tree setting ever earns its place, the upgrade path is unambiguous: detect a `{` on line 1 and parse as JSON; a key-value or `.env`-style format was rejected for needing whitespace/quoting/edge-character rules that editor tooling can't validate.
 
 ## Tree resolution
 
@@ -52,17 +49,17 @@ A record of choices made and the alternatives rejected, so the rationale survive
 
 **Basename collisions are first-match-wins.** Two files sharing a basename make `[[name]]` ambiguous; the plugin opens whichever match Vim's `glob()` returns first (filesystem traversal order). This is pragmatic but nondeterministic, so the design relies on the user maintaining unique basenames. Detecting collisions is out of scope for the plugin — surface it to whatever external validation the user runs.
 
-## Landing page
+## Landing page (removed)
 
-**The landing page is optional.** A tree with no landing file is fully functional; the plugin's resolution, follow, completion, and link navigation all work without one. The landing page is a user-affordance, not a structural requirement.
+**There is no landing-page command.** `:WikijumpIndex` and its whole index-name subsystem (`g:wj_index_name`, the `.wikijump` first-line override, `ReadIndexName`/`ResolveIndexName`) were removed. As a *navigation* affordance it duplicated `:e`, netrw, and fzf, and it was the lone exception to the plugin's own rule that pickers and nav shortcuts are user config (see "No search or picker commands"). Once the index name resolved on demand instead of caching on `BufEnter`, the command was the sole consumer of that branch — removing it let the branch go too, collapsing `.wikijump` to a pure presence marker.
 
-**`:WikijumpIndex` opens the landing page, creating it on save if absent.** Same create-on-save behavior as link follow. The filename defaults to `README.md`, overridable per-tree via the first line of `.wikijump`, or globally via `g:wj_index_name`. Rejected: requiring the landing page to exist for the tree to be valid. Reasons: with `.wikijump` as the marker, the tree's identity is fully captured by the marker — the landing page is a separate concern and shouldn't be conflated.
+The one thing built-ins don't do — walk to *this* tree's root regardless of cwd, then create the file on save — is a one-line user mapping if wanted (`<Cmd>exe 'edit' fnameescape(b:wj_root .. '/index.md')<CR>`). Rejected earlier (the original design): a bare `:WikijumpIndex` with a `!` global-fallback variant; location-driven tools should stay location-driven.
 
 ## Self-contained operation
 
 **The plugin resolves the root itself.** No external process is invoked for resolution; walk-up is implemented in pure Vim9. Fork/exec on every `BufEnter` would be wasted cost for a few `filereadable` checks. The convention (`.wikijump` marker) is the contract — any other tool reading the same tree independently walks the same way.
 
-**State is buffer-local and computed on `BufEnter`.** `b:wj_root` is set once per buffer, not recomputed per command. `b:wj_index_name` is read from `.wikijump` at the same time and cached. Renaming the file or editing `.wikijump` from outside the editor invalidates the cache — accepted as a known limitation.
+**State is buffer-local and computed on `BufEnter`.** `b:wj_root` is set once per buffer, not recomputed per command — every command needs the root, so the walk-up runs once on entry. It is the only buffer-local state; `OnBufEnter` does nothing but set it inside a tree and clear it elsewhere.
 
 ## Navigation
 
@@ -72,7 +69,7 @@ A record of choices made and the alternatives rejected, so the rationale survive
 
 The mechanism is deliberately minimal. `Follow()` pushes the source location `{path, lnum, col}` — `col` being the followed link's `col_start` — onto a stack before `:edit`. `<BS>` (`:WikijumpBack`) pops the top entry, edits that file, and parks the cursor *on the `[[link]]`*. Because `<CR>` already follows the link under the cursor, **forward navigation is just the re-follow** — which re-pushes the same entry, so the stack self-heals. No forward stack is needed, and the model collapses cleanly when the user diverges (follows a different link), matching browser back/forward intuition. Entries whose file was deleted mid-session are skipped; the recorded line is clamped if the file shrank.
 
-This is the plugin's only persistent module-level state — everything else is buffer-local and recomputed on `BufEnter`. The departure is intentional and isolated to one script-local list. Anchor-only `[[#heading]]` jumps and `:WikijumpIndex` are deliberately *not* recorded (they don't change files, or are a "teleport home" affordance); the upgrade path is one `add()` call each if that ever becomes friction. The `<BS>` map is buffer-local to in-tree markdown buffers and falls through to a literal backspace when the history is empty, so it never surprises off-link.
+This is the plugin's only persistent module-level state — everything else is buffer-local and recomputed on `BufEnter`. The departure is intentional and isolated to one script-local list. Anchor-only `[[#heading]]` jumps are deliberately *not* recorded (they don't change files); the upgrade path is one `add()` call if that ever becomes friction. The `<BS>` map is buffer-local to in-tree markdown buffers and falls through to a literal backspace when the history is empty, so it never surprises off-link.
 
 **No default mappings for next/previous link.** Exposed as `:WikijumpNext` and `:WikijumpPrev`. The user binds them (typically `<Tab>` / `<S-Tab>` in markdown buffers). Rationale: the plugin is stingy about claiming keys; each mapping it grabs is one the user cannot bind themselves. Tab specifically is risky on terminal Vim where it shadows `<C-i>` — leaving the binding to the user makes that tradeoff explicit.
 
@@ -94,9 +91,7 @@ This is the plugin's only persistent module-level state — everything else is b
 
 ## Commands and bang semantics
 
-**`:WikijumpIndex` is purely local — no global fallback, no bang variant.** Resolution walks up from the current buffer; the nearest `.wikijump` wins. If the buffer is outside any tree, the command errors. Rationale: when editing a file inside a tree, walk-up naturally finds the right root — no fallback logic needed. When editing a file outside any tree, opening "some other" landing page is a personal shortcut, not a command's responsibility; the user wires their own mapping if they want it. Rejected: an earlier design where bare `:WikijumpIndex` fell back to a configured global tree and `:WikijumpIndex!` forced it. Reasons: location-driven tools should stay location-driven; the bang variant was extra surface for a case better handled by user mapping.
-
-**No bang variants on any current command.** None of `:WikijumpIndex`, `:WikijumpRoot`, `:WikijumpFollow`, `:WikijumpNext`, `:WikijumpPrev` has a meaningful global/local distinction. The bang convention is held in reserve for a future command that genuinely needs it; it is not used decoratively.
+**No bang variants on any current command.** None of `:WikijumpRoot`, `:WikijumpFollow`, `:WikijumpBack`, `:WikijumpNext`, `:WikijumpPrev` has a meaningful global/local distinction. The bang convention is held in reserve for a future command that genuinely needs it; it is not used decoratively.
 
 ## File organization conventions
 
@@ -106,14 +101,13 @@ This is the plugin's only persistent module-level state — everything else is b
 
 The plugin's complete configuration surface.
 
-| Variable | Per-tree override | Purpose | Default |
-|---|---|---|---|
-| `g:wj_marker_name` | — | Filename used as the marker. | `'.wikijump'` |
-| `g:wj_index_name` | first line of `.wikijump` | Landing page filename, opened by `:WikijumpIndex`. | `'README.md'` |
-| `g:wj_stop_markers` | — | Directory contents (in addition to `$HOME` and filesystem root, which are implicit) that halt the walk-up resolution. | `['.git']` |
-| `g:wj_autocomplete` | — | When `1`, completion fires automatically inside `[[…`. | `0` |
+| Variable | Purpose | Default |
+|---|---|---|
+| `g:wj_marker_name` | Filename used as the marker. | `'.wikijump'` |
+| `g:wj_stop_markers` | Directory contents (in addition to `$HOME` and filesystem root, which are implicit) that halt the walk-up resolution. | `['.git']` |
+| `g:wj_autocomplete` | When `1`, completion fires automatically inside `[[…`. | `0` |
 
-Globals set in vimrc; the only per-tree override is the landing page filename, taken from the first non-blank line of `.wikijump`. Precedence: marker field → global → built-in default. Anything not listed is not configurable. Adding configuration is a deliberate act, weighed against the cost of an additional surface to document and maintain.
+Globals set in vimrc; there are no per-tree overrides. Anything not listed is not configurable. Adding configuration is a deliberate act, weighed against the cost of an additional surface to document and maintain.
 
 ## Obsidian interop
 
@@ -128,12 +122,11 @@ Globals set in vimrc; the only per-tree override is the landing page filename, t
 - **No nested trees as a design feature.** One `.wikijump` per folder tree. A second `.wikijump` deeper creates a nested tree — possible but never accidental.
 - **No path-relative wikilinks.** Basename resolution everywhere, matching Obsidian and surviving file moves.
 - **No basename-collision detection inside the plugin.** First-match-wins at follow time; uniqueness is the user's responsibility, surfaced by external tooling.
-- **No required landing page.** `:WikijumpIndex` creates the configured file on save if it doesn't exist. A tree with no landing page is valid.
+- **No landing-page command.** `:WikijumpIndex` and its index-name config were removed; see "Landing page (removed)". A "home" shortcut is a one-line user mapping.
 - **A dedicated back-stack (`<BS>` / `:WikijumpBack`).** Records file-changing follows only; forward is the `<CR>` re-follow. See Navigation above for why this reversed the original jumplist-only decision.
 - **No `<C-o>` / `<C-i>` override.** Vim's jumplist is sacred — the back-stack is additive, never a replacement.
 - **No search or picker commands.** Picker is user config; the plugin ships none.
 - **No template instantiation.** Out of scope; plugin only follows, completes, and opens.
 - **No backlinks pane or graph view.** Out of scope; Obsidian or external tooling for that.
 - **No file-list cache for completion.** Premature.
-- **No global fallback on `:WikijumpIndex`.** Location-driven, errors when outside a tree.
-- **No structured marker format.** `.wikijump` carries at most one filename on its first line. Beyond that, the file is meaningless. Avoids parser dependencies and edge-case rules; upgrade path to JSON later is unambiguous (detect leading `{`).
+- **No structured marker format.** `.wikijump` is presence-only; its contents are ignored. Avoids parser dependencies and edge-case rules; upgrade path to JSON later is unambiguous (detect leading `{`).

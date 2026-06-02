@@ -23,21 +23,10 @@ def g:Test_FindRoot_stops_at_git_marker()
   assert_equal('', root)
 enddef
 
-def g:Test_ReadIndexName_empty_marker()
-  var name = wikijump#ReadIndexName(FIX .. '/tree')
-  assert_equal('', name)
-enddef
-
-def g:Test_ResolveIndexName_falls_back_to_global()
-  var name = wikijump#ResolveIndexName(FIX .. '/tree')
-  assert_equal('README.md', name)
-enddef
-
 def g:Test_OnBufEnter_sets_buffer_state_inside_tree()
   execute 'edit' fnameescape(FIX .. '/tree/notes/foo.md')
   assert_true(exists('b:wj_root'))
   assert_equal(FIX .. '/tree', b:wj_root)
-  assert_equal('README.md', b:wj_index_name)
   bwipeout!
 enddef
 

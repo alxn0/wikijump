@@ -4,15 +4,7 @@ The plugin gives me a small set of in-buffer affordances for following and creat
 
 ## Making a directory a tree
 
-**`touch .wikijump` at the directory's root.** The presence of `.wikijump` is what makes a directory a tree. The file can be empty, in which case all defaults apply.
-
-**To override the landing page filename for this tree**, put the filename on the first line:
-
-```
-README.md
-```
-
-That's the entire format. One filename, one line. Subsequent lines are ignored. Files with leading whitespace are trimmed. If the file is empty or contains only whitespace, the global default (`g:wj_index_name`, itself defaulting to `README.md`) is used.
+**`touch .wikijump` at the directory's root.** The presence of `.wikijump` is what makes a directory a tree. Its contents are ignored — presence alone is the signal.
 
 ## Follow links
 
@@ -50,14 +42,6 @@ The plugin splits on `|` (keeps the left side), then on `#` (keeps the left side
 
 These are exposed as commands rather than default mappings. I bind them myself in my config — typically `<Tab>` / `<S-Tab>` in markdown buffers — so I keep control of which keys this layer claims. On terminal Vim, `<Tab>` shadows `<C-i>` (jumplist forward); on Neovim and GUI Vim the two are distinct.
 
-## Open the landing page
-
-**`:WikijumpIndex` opens the tree's landing page.** Resolution walks up from the current buffer to find the root (the directory with `.wikijump`), then opens the configured landing page there. The filename defaults to `README.md`, overridable per-tree via the first line of `.wikijump`, or globally via `g:wj_index_name`. If the landing page does not exist, the buffer opens empty and saving creates it — same as link-follow behavior.
-
-A landing page is optional. A tree with no `README.md` (or whatever it's configured to) is fully functional; `:WikijumpIndex` just creates the file on first use. If the buffer is not inside any tree, the command errors ("no .wikijump marker found") and does nothing else.
-
-There is no global fallback and no bang variant. If I want a shortcut to a specific tree from anywhere, I wire it as my own mapping with the explicit path.
-
 ## Insert and complete links
 
 **Inside `[[…`, completion proposes file basenames.** I trigger it with `<C-x><C-u>` (user-defined completion, `completefunc`). The list is every `.md` file in the tree, shown by basename with `.md` stripped — since links are basename-resolved, that's all the information needed to write one. Tab-cycling works as normal.
@@ -78,13 +62,10 @@ There is no global fallback and no bang variant. If I want a shortcut to a speci
 
 ## Configuration
 
-Global variables set in vimrc. The only per-tree override available is the landing page filename, set as the first line of `.wikijump`.
+Global variables set in vimrc. There are no per-tree overrides; the `.wikijump` marker carries no configuration.
 
-| Variable | Per-tree override | Purpose | Default |
-|---|---|---|---|
-| `g:wj_marker_name` | — | Filename used as the marker. | `'.wikijump'` |
-| `g:wj_index_name` | first line of `.wikijump` | Landing page filename, opened by `:WikijumpIndex`. | `'README.md'` |
-| `g:wj_stop_markers` | — | Directory contents that halt the walk-up (in addition to `$HOME` and filesystem root, which are implicit). | `['.git']` |
-| `g:wj_autocomplete` | — | When `1`, completion fires automatically inside `[[…`. | `0` |
-
-Precedence for the landing page name: the `.wikijump` first line → global `g:wj_index_name` → built-in default.
+| Variable | Purpose | Default |
+|---|---|---|
+| `g:wj_marker_name` | Filename used as the marker. | `'.wikijump'` |
+| `g:wj_stop_markers` | Directory contents that halt the walk-up (in addition to `$HOME` and filesystem root, which are implicit). | `['.git']` |
+| `g:wj_autocomplete` | When `1`, completion fires automatically inside `[[…`. | `0` |
