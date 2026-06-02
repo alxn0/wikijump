@@ -16,8 +16,10 @@ CONTENTS                                                  *wikijump-contents*
 
 wikijump.vim teaches Vim to follow `[[wikilinks]]` in markdown files.
 It is intentionally small: one buffer at a time, no cross-file rename, no
-backlinks, no picker. For everything else, use Vim's built-ins: |gf| for
-markdown links, |gx| for URLs, |CTRL-O| / |CTRL-I| for jumplist.
+backlinks, no picker. Following keeps a back-history (|:WikijumpBack|, mapped
+to `<BS>`) so you can retrace wiki hops without the jumplist's intra-buffer
+noise. For everything else, use Vim's built-ins: |gf| for markdown links,
+|gx| for URLs, |CTRL-O| / |CTRL-I| for jumplist.
 
 ==============================================================================
 2. The tree                                                    *wikijump-tree*
@@ -52,6 +54,16 @@ Files under directories whose names begin with `_` or `.` (for example
         `<root>/<basename>.md` — saving creates the file. Anchor matching
         is case-insensitive with hyphens treated as spaces.
 
+                                                                *:WikijumpBack*
+:WikijumpBack
+        Return to the previous wiki page, parking the cursor on the
+        `[[wikilink]]` you followed forward — so a subsequent |:WikijumpFollow|
+        (or `<CR>`) re-follows it. This is a dedicated history of file-changing
+        follows, independent of the jumplist; forward navigation is just the
+        re-follow, there is no separate forward stack. Entries whose file was
+        deleted mid-session are skipped; the recorded line is clamped if the
+        file shrank. Errors when there is no readable previous page.
+
                                                                 *:WikijumpNext*
 :WikijumpNext
         Jump to the next `[[wikilink]]` in the buffer. Search wraps.
@@ -80,6 +92,12 @@ Files under directories whose names begin with `_` or `.` (for example
 <CR>          (normal mode, markdown buffers inside a tree)
         Follow the wikilink under the cursor; falls through to default
         `<CR>` when off a wikilink or outside a tree.
+
+                                                                  *wikijump-BS*
+<BS>          (normal mode, markdown buffers inside a tree)
+        Go back one wiki page (|:WikijumpBack|), parking the cursor on the
+        link you came through. Falls through to a literal backspace when the
+        wiki back-history is empty.
 
                                                   *<Plug>(wikijump-complete)*
 <Plug>(wikijump-complete)        (insert mode, markdown in a tree)

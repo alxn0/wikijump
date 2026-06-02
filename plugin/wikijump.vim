@@ -18,6 +18,7 @@ augroup END
 
 command! -bar WikijumpRoot   call wikijump#Root()
 command! -bar WikijumpFollow call wikijump#Follow()
+command! -bar WikijumpBack   call wikijump#Back()
 command! -bar WikijumpNext   call wikijump#Next()
 command! -bar WikijumpPrev   call wikijump#Prev()
 command! -bar WikijumpIndex  call wikijump#Index()

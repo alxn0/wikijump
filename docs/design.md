@@ -68,7 +68,11 @@ A record of choices made and the alternatives rejected, so the rationale survive
 
 **`<CR>` follows the wikilink under the cursor.** Buffer-local, active only when `b:wj_root` is set, so it does not bleed into markdown buffers outside a tree. The same action is exposed as `:WikijumpFollow` for invoking from other mappings or scripts.
 
-**Back navigation uses Vim's jumplist (`<C-o>` / `<C-i>`), not a custom stack.** Because follow uses `:edit`, every traversal pushes to the jumplist for free. Rejected: a wiki.vim-style `<BS>` mapping that returns the cursor exactly to the source `[[link]]`. Reasons: avoids overriding `<C-o>`/`<C-i>`, keeps the surface small, costs nothing to implement. Hub-and-spoke navigation (scanning many links from one index) is slightly less smooth — revisit if it becomes friction in practice.
+**Back navigation uses a dedicated wiki history (`<BS>` / `:WikijumpBack`), additive to the jumplist.** This reverses an earlier decision that deferred entirely to Vim's jumplist (`<C-o>` / `<C-i>`). The reversal: the jumplist conflates intra-buffer cursor jumps (searches, large motions) with wiki traversals, so a single `<C-o>` often just moves the cursor *within* the current file — returning to the previous *file* takes several presses, and the friction grows with hub-and-spoke browsing. A history that records *only* file-changing follows is the fast path; `<C-o>` / `<C-i>` stay untouched for everyone who wants them.
+
+The mechanism is deliberately minimal. `Follow()` pushes the source location `{path, lnum, col}` — `col` being the followed link's `col_start` — onto a stack before `:edit`. `<BS>` (`:WikijumpBack`) pops the top entry, edits that file, and parks the cursor *on the `[[link]]`*. Because `<CR>` already follows the link under the cursor, **forward navigation is just the re-follow** — which re-pushes the same entry, so the stack self-heals. No forward stack is needed, and the model collapses cleanly when the user diverges (follows a different link), matching browser back/forward intuition. Entries whose file was deleted mid-session are skipped; the recorded line is clamped if the file shrank.
+
+This is the plugin's only persistent module-level state — everything else is buffer-local and recomputed on `BufEnter`. The departure is intentional and isolated to one script-local list. Anchor-only `[[#heading]]` jumps and `:WikijumpIndex` are deliberately *not* recorded (they don't change files, or are a "teleport home" affordance); the upgrade path is one `add()` call each if that ever becomes friction. The `<BS>` map is buffer-local to in-tree markdown buffers and falls through to a literal backspace when the history is empty, so it never surprises off-link.
 
 **No default mappings for next/previous link.** Exposed as `:WikijumpNext` and `:WikijumpPrev`. The user binds them (typically `<Tab>` / `<S-Tab>` in markdown buffers). Rationale: the plugin is stingy about claiming keys; each mapping it grabs is one the user cannot bind themselves. Tab specifically is risky on terminal Vim where it shadows `<C-i>` — leaving the binding to the user makes that tradeoff explicit.
 
@@ -125,9 +129,8 @@ Globals set in vimrc; the only per-tree override is the landing page filename, t
 - **No path-relative wikilinks.** Basename resolution everywhere, matching Obsidian and surviving file moves.
 - **No basename-collision detection inside the plugin.** First-match-wins at follow time; uniqueness is the user's responsibility, surfaced by external tooling.
 - **No required landing page.** `:WikijumpIndex` creates the configured file on save if it doesn't exist. A tree with no landing page is valid.
-- **No custom back-stack navigation.** Jumplist suffices.
-- **No `<BS>` mapping.** Not needed; reserves the key for the user.
-- **No `<C-o>` / `<C-i>` override.** Vim's jumplist is sacred.
+- **A dedicated back-stack (`<BS>` / `:WikijumpBack`).** Records file-changing follows only; forward is the `<CR>` re-follow. See Navigation above for why this reversed the original jumplist-only decision.
+- **No `<C-o>` / `<C-i>` override.** Vim's jumplist is sacred — the back-stack is additive, never a replacement.
 - **No search or picker commands.** Picker is user config; the plugin ships none.
 - **No template instantiation.** Out of scope; plugin only follows, completes, and opens.
 - **No backlinks pane or graph view.** Out of scope; Obsidian or external tooling for that.

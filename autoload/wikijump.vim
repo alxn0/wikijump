@@ -1,6 +1,13 @@
 vim9script
 # Implementation for wikijump.vim. Loaded on first call via autoload.
 
+# Wiki back-history: a stack of source locations, one per file-changing
+# follow. Each entry is {path, lnum, col} where col is the followed link's
+# col_start (the `[[`), so Back() can park the cursor on the link and a
+# subsequent <CR> re-follows it forward. This is the plugin's only persistent
+# module-level state; everything else is buffer-local and recomputed.
+var back_stack: list<dict<any>> = []
+
 # True when the current buffer sits inside a resolved tree (b:wj_root set).
 def HasRoot(): bool
   return exists('b:wj_root') && !empty(b:wj_root)
@@ -196,7 +203,14 @@ export def Follow(): bool
   if empty(path)
     path = b:wj_root .. '/' .. link.target .. '.md'
   endif
+  # Capture where we came from so <BS> can return here with the cursor parked
+  # on the link. Record it only after the :edit succeeds — a failing edit
+  # (e.g. E37 on a modified buffer with 'nohidden') must not leave a phantom
+  # entry for a hop that never happened. Reached only on a file-changing
+  # follow; the no-root, no-link, and anchor-only cases all return above.
+  var from = {path: expand('%:p'), lnum: line('.'), col: link.col_start}
   execute 'edit' fnameescape(path)
+  add(back_stack, from)
   if !empty(link.anchor)
     JumpToAnchor(link.anchor)
   endif
@@ -242,6 +256,47 @@ export def FollowExpr(): string
     return "\<CR>"
   endif
   return ":WikijumpFollow\<CR>"
+enddef
+
+# ---------- Back ----------
+
+# Pop the wiki back-history and return to the previous page, parking the
+# cursor on the [[wikilink]] that was followed forward (so <CR> re-follows).
+# Entries whose file is no longer readable are skipped. The recorded line is
+# clamped to the buffer in case it shrank since. Returns true when it
+# navigated, false when there was nothing readable to go back to.
+export def Back(): bool
+  while !empty(back_stack)
+    var entry = back_stack[-1]
+    if !filereadable(entry.path)
+      remove(back_stack, -1)
+      continue
+    endif
+    # Pop only after the :edit succeeds — a failing edit (e.g. E37 on a
+    # modified buffer with 'nohidden') must not consume the entry we were
+    # trying to return to, so a later <BS> can retry it.
+    execute 'edit' fnameescape(entry.path)
+    remove(back_stack, -1)
+    cursor(min([entry.lnum, line('$')]), entry.col)
+    return true
+  endwhile
+  Error('no previous wiki page')
+  return false
+enddef
+
+# Expression mapping used by the <BS> map: returns a back invocation that
+# consumes the key when there is history, or a literal <BS> so the default
+# backspace behavior is preserved when there is nothing to go back to.
+export def BackExpr(): string
+  if empty(back_stack)
+    return "\<BS>"
+  endif
+  return ":WikijumpBack\<CR>"
+enddef
+
+# Reset the back-history. Exported for test isolation; not used at runtime.
+export def ClearBackStack()
+  back_stack = []
 enddef
 
 # ---------- Completion ----------
