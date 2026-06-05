@@ -12,6 +12,7 @@ if !exists('b:wj_root') || empty(b:wj_root)
 endif
 
 nnoremap <buffer><silent><expr> <CR> wikijump#FollowExpr()
+nnoremap <buffer><silent><expr> <S-CR> wikijump#FollowExpr(true)
 nnoremap <buffer><silent><expr> <BS> wikijump#BackExpr()
 
 # Install completefunc only when the slot is free; we deliberately don't

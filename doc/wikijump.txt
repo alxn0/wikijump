@@ -50,6 +50,13 @@ Files under directories whose names begin with `_` or `.` (for example
         `<root>/<basename>.md` — saving creates the file. Anchor matching
         is case-insensitive with hyphens treated as spaces.
 
+                                                         *:WikijumpFollowSplit*
+:WikijumpFollowSplit
+        Like |:WikijumpFollow|, but opens the target with |g:wj_split_cmd|
+        instead of `:edit`. By default the new window opens to the right
+        of the current one with the cursor in it. Anchor-only links
+        (`[[#section]]`) jump within the current buffer and never split.
+
                                                                 *:WikijumpBack*
 :WikijumpBack
         Return to the previous wiki page, parking the cursor on the
@@ -80,6 +87,14 @@ Files under directories whose names begin with `_` or `.` (for example
 <CR>          (normal mode, markdown buffers inside a tree)
         Follow the wikilink under the cursor; falls through to default
         `<CR>` when off a wikilink or outside a tree.
+
+                                                                *wikijump-S-CR*
+<S-CR>        (normal mode, markdown buffers inside a tree)
+        Follow the wikilink under the cursor in a split (|g:wj_split_cmd|);
+        falls through when off a wikilink or outside a tree. Terminals only
+        distinguish `<S-CR>` from `<CR>` with |modifyOtherKeys| or the kitty
+        keyboard protocol; GUI Vim always does. Without that support the
+        terminal sends a plain `<CR>` and the |wikijump-CR| map fires instead.
 
                                                                   *wikijump-BS*
 <BS>          (normal mode, markdown buffers inside a tree)
@@ -139,6 +154,13 @@ g:wj_stop_markers       default: ['.git']
 g:wj_autocomplete       default: 0
         When 1, completion fires automatically inside `[[…` via
         |TextChangedI|. Off by default.
+
+                                                             *g:wj_split_cmd*
+g:wj_split_cmd          default: 'rightbelow vsplit'
+        Ex command used by |:WikijumpFollowSplit| and `<S-CR>` to open the
+        target. The default places the new window to the right of the
+        current one, independent of 'splitright'. Any command taking a
+        file argument works: `split`, `tabedit`, `vert botright split`, …
 
 ==============================================================================
 7. Buffer-local variables                          *wikijump-buffer-vars*

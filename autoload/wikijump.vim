@@ -149,9 +149,11 @@ def IsExcludedPath(root: string, path: string): bool
   return false
 enddef
 
-# Entry point for :WikijumpFollow and the <CR> map. Returns true when a
-# link was followed, false when there was nothing to follow.
-export def Follow(): bool
+# Entry point for :WikijumpFollow / :WikijumpFollowSplit and the <CR> /
+# <S-CR> maps. `opencmd` is any ex command taking a file argument (edit,
+# vsplit, …). Returns true when a link was followed, false when there was
+# nothing to follow. Anchor-only links jump in-buffer and never use opencmd.
+export def Follow(opencmd: string = 'edit'): bool
   if !HasRoot()
     Error('no .wikijump marker found')
     return false
@@ -182,12 +184,12 @@ export def Follow(): bool
     path = b:wj_root .. '/' .. link.target .. '.md'
   endif
   # Capture where we came from so <BS> can return here with the cursor parked
-  # on the link. Record it only after the :edit succeeds — a failing edit
+  # on the link. Record it only after the opencmd succeeds — a failing open
   # (e.g. E37 on a modified buffer with 'nohidden') must not leave a phantom
   # entry for a hop that never happened. Reached only on a file-changing
   # follow; the no-root, no-link, and anchor-only cases all return above.
   var from = {path: expand('%:p'), lnum: line('.'), col: link.col_start}
-  execute 'edit' fnameescape(path)
+  execute opencmd fnameescape(path)
   add(back_stack, from)
   if !empty(link.anchor)
     JumpToAnchor(link.anchor)
@@ -226,14 +228,14 @@ def NormalizeAnchor(s: string): string
   return tolower(substitute(trim(s), '-', ' ', 'g'))
 enddef
 
-# Expression mapping used by the <CR> map: returns either a follow
-# invocation that consumes the key, or a literal <CR> so the default
-# behavior is preserved off-link.
-export def FollowExpr(): string
+# Expression mapping used by the <CR> and <S-CR> maps: returns either a
+# follow invocation that consumes the key, or the literal key so the
+# default behavior is preserved off-link.
+export def FollowExpr(split: bool = false): string
   if !HasRoot() || empty(LinkUnderCursor())
-    return "\<CR>"
+    return split ? "\<S-CR>" : "\<CR>"
   endif
-  return ":WikijumpFollow\<CR>"
+  return split ? ":WikijumpFollowSplit\<CR>" : ":WikijumpFollow\<CR>"
 enddef
 
 # ---------- Back ----------

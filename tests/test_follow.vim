@@ -121,6 +121,37 @@ def g:Test_Follow_rejects_slash_in_target()
   bwipeout!
 enddef
 
+# Split-follow bar.md's [[foo]] link into foo.md — the common arrange step.
+def SplitFollowFoo()
+  execute 'edit' fnameescape(FIX .. '/tree/notes/bar.md')
+  cursor(3, stridx(getline(3), 'foo') + 1)
+  WikijumpFollowSplit
+enddef
+
+def g:Test_FollowSplit_opens_in_new_window()
+  SplitFollowFoo()
+  assert_equal(2, winnr('$'))
+  # Default 'rightbelow vsplit': new window is on the right (#2) and
+  # holds the cursor.
+  assert_equal(2, winnr())
+  assert_equal(FIX .. '/tree/notes/foo.md', expand('%:p'))
+  only
+  bwipeout!
+enddef
+
+def g:Test_FollowSplit_respects_wj_split_cmd()
+  var saved = g:wj_split_cmd
+  g:wj_split_cmd = 'split'
+  SplitFollowFoo()
+  # `split` stacks windows: the new one sits above, same width.
+  assert_equal(2, winnr('$'))
+  assert_equal(winwidth(1), winwidth(2))
+  assert_equal(FIX .. '/tree/notes/foo.md', expand('%:p'))
+  g:wj_split_cmd = saved
+  only
+  bwipeout!
+enddef
+
 def g:Test_JumpToAnchor_skips_tilde_fences()
   enew!
   setline(1, [

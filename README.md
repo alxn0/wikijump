@@ -29,6 +29,10 @@ PRs won't be answered by now.
 - Press `<CR>` on a [[wikilink]] open it in the same buffer (i.e.,
   jump). Use basename resolution in the present tree (no nested
   structure, flat namespace).
+- Press `<S-CR>` to open it in a split instead (`g:wj_split_cmd`,
+  default `rightbelow vsplit`: new window on the right, cursor in it).
+  Needs a terminal that distinguishes `<S-CR>` from `<CR>`
+  (modifyOtherKeys / kitty protocol), or GUI Vim.
 - If target is missing, opens an empty buffer as
   `<root>/<wikilink>.md`.
 - `:WikijumpNext` / `:WikijumpPrev` cycle through wikilinks in the

@@ -9,14 +9,16 @@ g:loaded_wikijump = 1
 g:wj_marker_name  = get(g:, 'wj_marker_name',  '.wikijump')
 g:wj_stop_markers = get(g:, 'wj_stop_markers', ['.git'])
 g:wj_autocomplete = get(g:, 'wj_autocomplete', 0)
+g:wj_split_cmd    = get(g:, 'wj_split_cmd',    'rightbelow vsplit')
 
 augroup wikijump
   autocmd!
   autocmd BufEnter * call wikijump#OnBufEnter()
 augroup END
 
-command! -bar WikijumpRoot   call wikijump#Root()
-command! -bar WikijumpFollow call wikijump#Follow()
-command! -bar WikijumpBack   call wikijump#Back()
-command! -bar WikijumpNext   call wikijump#Next()
-command! -bar WikijumpPrev   call wikijump#Prev()
+command! -bar WikijumpRoot        call wikijump#Root()
+command! -bar WikijumpFollow      call wikijump#Follow()
+command! -bar WikijumpFollowSplit call wikijump#Follow(g:wj_split_cmd)
+command! -bar WikijumpBack        call wikijump#Back()
+command! -bar WikijumpNext        call wikijump#Next()
+command! -bar WikijumpPrev        call wikijump#Prev()
